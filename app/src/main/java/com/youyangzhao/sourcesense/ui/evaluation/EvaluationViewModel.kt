@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.youyangzhao.sourcesense.domain.model.calculateEvaluationResult
+import com.youyangzhao.sourcesense.domain.repository.EvaluationHistoryRepository
 import com.youyangzhao.sourcesense.domain.repository.EvidenceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,7 +13,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class EvaluationViewModel(
-    private val evidenceRepository: EvidenceRepository
+    private val evidenceRepository: EvidenceRepository,
+    private val evaluationHistoryRepository: EvaluationHistoryRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(EvaluationUiState())
@@ -59,15 +61,16 @@ class EvaluationViewModel(
         val currentState = _uiState.value
         val currentQuestion = currentState.currentQuestion ?: return
 
-        // Ignore answer changes after the evaluation is completed
-        if (currentState.result != null) {
+        // Prevent changes while saving or after completion
+        if (currentState.result != null || currentState.isSaving) {
             return
         }
 
         _uiState.update { state ->
             state.copy(
                 selectedAnswers = state.selectedAnswers +
-                        (currentQuestion.id to optionId)
+                        (currentQuestion.id to optionId),
+                saveErrorMessage = null
             )
         }
     }
@@ -95,7 +98,11 @@ class EvaluationViewModel(
     fun moveToPreviousQuestion() {
         val currentState = _uiState.value
 
-        if (currentState.isFirstQuestion || currentState.result != null) {
+        if (
+            currentState.isFirstQuestion ||
+            currentState.result != null ||
+            currentState.isSaving
+        ) {
             return
         }
 
@@ -110,13 +117,56 @@ class EvaluationViewModel(
         val currentState = _uiState.value
         val evidenceCase = currentState.evidenceCase ?: return
 
+        if (currentState.isSaving) {
+            return
+        }
+
         val evaluationResult = calculateEvaluationResult(
             evidenceCase = evidenceCase,
             selectedAnswers = currentState.selectedAnswers
         )
 
         _uiState.update { state ->
-            state.copy(result = evaluationResult)
+            state.copy(
+                isSaving = true,
+                saveErrorMessage = null
+            )
+        }
+
+        viewModelScope.launch {
+            runCatching {
+                evaluationHistoryRepository.saveEvaluationResult(
+                    result = evaluationResult
+                )
+            }.onSuccess {
+                // Navigate only after the result is stored
+                _uiState.update { state ->
+                    state.copy(
+                        isSaving = false,
+                        result = evaluationResult
+                    )
+                }
+            }.onFailure {
+                _uiState.update { state ->
+                    state.copy(
+                        isSaving = false,
+                        saveErrorMessage =
+                            "The result could not be saved. Please try again."
+                    )
+                }
+            }
+        }
+    }
+
+    fun retrySavingResult() {
+        val currentState = _uiState.value
+
+        if (
+            currentState.isLastQuestion &&
+            currentState.selectedOptionId != null &&
+            currentState.result == null
+        ) {
+            completeEvaluation()
         }
     }
 
@@ -141,7 +191,8 @@ class EvaluationViewModel(
 }
 
 class EvaluationViewModelFactory(
-    private val evidenceRepository: EvidenceRepository
+    private val evidenceRepository: EvidenceRepository,
+    private val evaluationHistoryRepository: EvaluationHistoryRepository
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -150,7 +201,9 @@ class EvaluationViewModelFactory(
     ): T {
         if (modelClass.isAssignableFrom(EvaluationViewModel::class.java)) {
             return EvaluationViewModel(
-                evidenceRepository = evidenceRepository
+                evidenceRepository = evidenceRepository,
+                evaluationHistoryRepository =
+                    evaluationHistoryRepository
             ) as T
         }
 

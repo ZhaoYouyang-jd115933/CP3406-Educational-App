@@ -53,6 +53,7 @@ fun EvaluationRoute(
         onPrevious = viewModel::moveToPreviousQuestion,
         onContinue = viewModel::moveToNextQuestion,
         onRetry = viewModel::retryLoading,
+        onRetrySave = viewModel::retrySavingResult,
         modifier = modifier
     )
 }
@@ -64,12 +65,14 @@ fun EvaluationScreen(
     onPrevious: () -> Unit,
     onContinue: () -> Unit,
     onRetry: () -> Unit,
+    onRetrySave: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Store nullable values once so Kotlin can safely smart cast them
+    // Store nullable values once for safe state handling
     val evidenceCase = uiState.evidenceCase
     val currentQuestion = uiState.currentQuestion
     val errorMessage = uiState.errorMessage
+    val saveErrorMessage = uiState.saveErrorMessage
 
     when {
         uiState.isLoading -> {
@@ -80,6 +83,14 @@ fun EvaluationScreen(
             ErrorContent(
                 message = errorMessage,
                 onRetry = onRetry,
+                modifier = modifier
+            )
+        }
+
+        saveErrorMessage != null -> {
+            SaveErrorContent(
+                message = saveErrorMessage,
+                onRetrySave = onRetrySave,
                 modifier = modifier
             )
         }
@@ -102,6 +113,7 @@ fun EvaluationScreen(
                 selectedOptionId = uiState.selectedOptionId,
                 isFirstQuestion = uiState.isFirstQuestion,
                 isLastQuestion = uiState.isLastQuestion,
+                isSaving = uiState.isSaving,
                 canContinue = uiState.canContinue,
                 onOptionSelected = onOptionSelected,
                 onPrevious = onPrevious,
@@ -169,6 +181,40 @@ private fun ErrorContent(
 }
 
 @Composable
+private fun SaveErrorContent(
+    message: String,
+    onRetrySave: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Unable to save result",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(onClick = onRetrySave) {
+            Text(text = "Try Saving Again")
+        }
+    }
+}
+
+@Composable
 private fun EvaluationContent(
     evidenceCase: EvidenceCase,
     question: EvaluationQuestion,
@@ -178,6 +224,7 @@ private fun EvaluationContent(
     selectedOptionId: String?,
     isFirstQuestion: Boolean,
     isLastQuestion: Boolean,
+    isSaving: Boolean,
     canContinue: Boolean,
     onOptionSelected: (String) -> Unit,
     onPrevious: () -> Unit,
@@ -187,7 +234,7 @@ private fun EvaluationContent(
     val listState = rememberLazyListState()
 
     LaunchedEffect(questionNumber) {
-        // Return to the top when the learner moves to a new question
+        // Return to the top for each new question
         listState.animateScrollToItem(0)
     }
 
@@ -218,7 +265,9 @@ private fun EvaluationContent(
         }
 
         item {
-            EvidenceCaseCard(evidenceCase = evidenceCase)
+            EvidenceCaseCard(
+                evidenceCase = evidenceCase
+            )
         }
 
         item {
@@ -236,7 +285,7 @@ private fun EvaluationContent(
             ) {
                 OutlinedButton(
                     onClick = onPrevious,
-                    enabled = !isFirstQuestion,
+                    enabled = !isFirstQuestion && !isSaving,
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(text = "Previous")
@@ -248,10 +297,10 @@ private fun EvaluationContent(
                     modifier = Modifier.weight(1f)
                 ) {
                     Text(
-                        text = if (isLastQuestion) {
-                            "Finish"
-                        } else {
-                            "Next"
+                        text = when {
+                            isSaving -> "Saving..."
+                            isLastQuestion -> "Finish"
+                            else -> "Next"
                         }
                     )
                 }

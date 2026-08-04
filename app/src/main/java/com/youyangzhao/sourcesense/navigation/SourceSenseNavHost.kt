@@ -11,13 +11,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.youyangzhao.sourcesense.data.local.database.SourceSenseDatabase
 import com.youyangzhao.sourcesense.data.repository.LocalEvidenceRepository
+import com.youyangzhao.sourcesense.data.repository.RoomEvaluationHistoryRepository
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationRoute
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationViewModel
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationViewModelFactory
@@ -33,6 +36,7 @@ fun SourceSenseNavHost(
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
+    val context = LocalContext.current.applicationContext
 
     val topLevelRoutes = remember {
         AppDestination.topLevelDestinations
@@ -46,9 +50,24 @@ fun SourceSenseNavHost(
         LocalEvidenceRepository()
     }
 
-    val evaluationFactory = remember {
+    val database = remember(context) {
+        SourceSenseDatabase.getInstance(context)
+    }
+
+    val evaluationHistoryRepository = remember(database) {
+        RoomEvaluationHistoryRepository(
+            evaluationAttemptDao = database.evaluationAttemptDao()
+        )
+    }
+
+    val evaluationFactory = remember(
+        evidenceRepository,
+        evaluationHistoryRepository
+    ) {
         EvaluationViewModelFactory(
-            evidenceRepository = evidenceRepository
+            evidenceRepository = evidenceRepository,
+            evaluationHistoryRepository =
+                evaluationHistoryRepository
         )
     }
 
@@ -66,7 +85,7 @@ fun SourceSenseNavHost(
                             selected = currentRoute == destination.route,
                             onClick = {
                                 navController.navigate(destination.route) {
-                                    // Preserve the state of main navigation screens
+                                    // Preserve state across main navigation screens
                                     popUpTo(
                                         navController.graph
                                             .findStartDestination()
@@ -106,7 +125,9 @@ fun SourceSenseNavHost(
 
                         navController.navigate(
                             AppDestination.Evaluation.route
-                        )
+                        ) {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }

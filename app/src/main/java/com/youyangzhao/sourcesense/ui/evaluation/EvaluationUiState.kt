@@ -6,11 +6,13 @@ import com.youyangzhao.sourcesense.domain.model.EvidenceCase
 
 data class EvaluationUiState(
     val isLoading: Boolean = true,
+    val isSaving: Boolean = false,
     val evidenceCase: EvidenceCase? = null,
     val currentQuestionIndex: Int = 0,
     val selectedAnswers: Map<String, String> = emptyMap(),
     val result: EvaluationResult? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val saveErrorMessage: String? = null
 ) {
     val currentQuestion: EvaluationQuestion?
         get() = evidenceCase
@@ -54,6 +56,7 @@ data class EvaluationUiState(
     val canContinue: Boolean
         get() = selectedOptionId != null &&
                 !isLoading &&
+                !isSaving &&
                 result == null
 }
 
