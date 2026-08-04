@@ -50,6 +50,8 @@ dependencies {
     // Provide Material icons for bottom navigation
     implementation("androidx.compose.material:material-icons-extended")
     testImplementation(libs.junit)
+    // Support deterministic coroutine unit tests
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
