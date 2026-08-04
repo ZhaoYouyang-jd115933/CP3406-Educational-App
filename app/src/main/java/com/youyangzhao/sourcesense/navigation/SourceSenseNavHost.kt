@@ -21,13 +21,16 @@ import androidx.navigation.compose.rememberNavController
 import com.youyangzhao.sourcesense.data.local.database.SourceSenseDatabase
 import com.youyangzhao.sourcesense.data.repository.LocalEvidenceRepository
 import com.youyangzhao.sourcesense.data.repository.RoomEvaluationHistoryRepository
+import com.youyangzhao.sourcesense.data.repository.RoomStatisticsRepository
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationRoute
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationViewModel
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationViewModelFactory
 import com.youyangzhao.sourcesense.ui.landing.LandingScreen
 import com.youyangzhao.sourcesense.ui.result.ResultRoute
 import com.youyangzhao.sourcesense.ui.settings.SettingsScreen
-import com.youyangzhao.sourcesense.ui.statistics.StatisticsScreen
+import com.youyangzhao.sourcesense.ui.statistics.StatisticsRoute
+import com.youyangzhao.sourcesense.ui.statistics.StatisticsViewModel
+import com.youyangzhao.sourcesense.ui.statistics.StatisticsViewModelFactory
 
 @Composable
 fun SourceSenseNavHost(
@@ -60,6 +63,12 @@ fun SourceSenseNavHost(
         )
     }
 
+    val statisticsRepository = remember(database) {
+        RoomStatisticsRepository(
+            evaluationAttemptDao = database.evaluationAttemptDao()
+        )
+    }
+
     val evaluationFactory = remember(
         evidenceRepository,
         evaluationHistoryRepository
@@ -71,8 +80,20 @@ fun SourceSenseNavHost(
         )
     }
 
+    val statisticsFactory = remember(
+        statisticsRepository
+    ) {
+        StatisticsViewModelFactory(
+            statisticsRepository = statisticsRepository
+        )
+    }
+
     val evaluationViewModel: EvaluationViewModel = viewModel(
         factory = evaluationFactory
+    )
+
+    val statisticsViewModel: StatisticsViewModel = viewModel(
+        factory = statisticsFactory
     )
 
     Scaffold(
@@ -185,7 +206,9 @@ fun SourceSenseNavHost(
             }
 
             composable(AppDestination.Statistics.route) {
-                StatisticsScreen()
+                StatisticsRoute(
+                    viewModel = statisticsViewModel
+                )
             }
 
             composable(AppDestination.Settings.route) {
