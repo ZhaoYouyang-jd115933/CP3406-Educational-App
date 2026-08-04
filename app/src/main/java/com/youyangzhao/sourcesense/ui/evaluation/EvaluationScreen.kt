@@ -2,19 +2,142 @@ package com.youyangzhao.sourcesense.ui.evaluation
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.youyangzhao.sourcesense.domain.model.AnswerOption
+import com.youyangzhao.sourcesense.domain.model.EvaluationQuestion
+import com.youyangzhao.sourcesense.domain.model.EvidenceCase
+
+@Composable
+fun EvaluationRoute(
+    viewModel: EvaluationViewModel,
+    onEvaluationComplete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(uiState.result) {
+        if (uiState.result != null) {
+            onEvaluationComplete()
+        }
+    }
+
+    EvaluationScreen(
+        uiState = uiState,
+        onOptionSelected = viewModel::selectAnswer,
+        onPrevious = viewModel::moveToPreviousQuestion,
+        onContinue = viewModel::moveToNextQuestion,
+        onRetry = viewModel::retryLoading,
+        modifier = modifier
+    )
+}
 
 @Composable
 fun EvaluationScreen(
+    uiState: EvaluationUiState,
+    onOptionSelected: (String) -> Unit,
+    onPrevious: () -> Unit,
+    onContinue: () -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Store nullable values once so Kotlin can safely smart cast them
+    val evidenceCase = uiState.evidenceCase
+    val currentQuestion = uiState.currentQuestion
+    val errorMessage = uiState.errorMessage
+
+    when {
+        uiState.isLoading -> {
+            LoadingContent(modifier = modifier)
+        }
+
+        errorMessage != null -> {
+            ErrorContent(
+                message = errorMessage,
+                onRetry = onRetry,
+                modifier = modifier
+            )
+        }
+
+        evidenceCase == null || currentQuestion == null -> {
+            ErrorContent(
+                message = "The evaluation content is unavailable.",
+                onRetry = onRetry,
+                modifier = modifier
+            )
+        }
+
+        else -> {
+            EvaluationContent(
+                evidenceCase = evidenceCase,
+                question = currentQuestion,
+                questionNumber = uiState.questionNumber,
+                totalQuestions = uiState.totalQuestions,
+                progress = uiState.progress,
+                selectedOptionId = uiState.selectedOptionId,
+                isFirstQuestion = uiState.isFirstQuestion,
+                isLastQuestion = uiState.isLastQuestion,
+                canContinue = uiState.canContinue,
+                onOptionSelected = onOptionSelected,
+                onPrevious = onPrevious,
+                onContinue = onContinue,
+                modifier = modifier
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoadingContent(
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        CircularProgressIndicator()
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Loading evidence case...",
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
+}
+
+@Composable
+private fun ErrorContent(
+    message: String,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -25,17 +148,290 @@ fun EvaluationScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Evidence Evaluation",
-            style = MaterialTheme.typography.headlineMedium,
+            text = "Unable to load evaluation",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(onClick = onRetry) {
+            Text(text = "Try Again")
+        }
+    }
+}
+
+@Composable
+private fun EvaluationContent(
+    evidenceCase: EvidenceCase,
+    question: EvaluationQuestion,
+    questionNumber: Int,
+    totalQuestions: Int,
+    progress: Float,
+    selectedOptionId: String?,
+    isFirstQuestion: Boolean,
+    isLastQuestion: Boolean,
+    canContinue: Boolean,
+    onOptionSelected: (String) -> Unit,
+    onPrevious: () -> Unit,
+    onContinue: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(questionNumber) {
+        // Return to the top when the learner moves to a new question
+        listState.animateScrollToItem(0)
+    }
+
+    LazyColumn(
+        state = listState,
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        item {
+            Text(
+                text = "Question $questionNumber of $totalQuestions",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        item {
+            EvidenceCaseCard(evidenceCase = evidenceCase)
+        }
+
+        item {
+            QuestionCard(
+                question = question,
+                selectedOptionId = selectedOptionId,
+                onOptionSelected = onOptionSelected
+            )
+        }
+
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onPrevious,
+                    enabled = !isFirstQuestion,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(text = "Previous")
+                }
+
+                Button(
+                    onClick = onContinue,
+                    enabled = canContinue,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = if (isLastQuestion) {
+                            "Finish"
+                        } else {
+                            "Next"
+                        }
+                    )
+                }
+            }
+        }
+
+        item {
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun EvidenceCaseCard(
+    evidenceCase: EvidenceCase
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Research Question",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = evidenceCase.researchQuestion,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = evidenceCase.title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = evidenceCase.authors,
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Text(
+                text = "${evidenceCase.publication}, ${evidenceCase.publishedYear}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Text(
+                text = evidenceCase.excerpt,
+                style = MaterialTheme.typography.bodyLarge
+            )
+
+            SourceDetail(
+                label = "Method",
+                value = evidenceCase.methodSummary
+            )
+
+            SourceDetail(
+                label = "Sample",
+                value = evidenceCase.sampleSummary
+            )
+
+            Text(
+                text = evidenceCase.sourceNote,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun SourceDetail(
+    label: String,
+    value: String
+) {
+    Column {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold
         )
 
         Text(
-            text = "Interactive academic evidence activities will appear here.",
-            modifier = Modifier.padding(top = 12.dp),
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center
+            text = value,
+            style = MaterialTheme.typography.bodyMedium
         )
+    }
+}
+
+@Composable
+private fun QuestionCard(
+    question: EvaluationQuestion,
+    selectedOptionId: String?,
+    onOptionSelected: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = question.dimension.displayName,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = question.prompt,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            question.options.forEach { option ->
+                AnswerOptionRow(
+                    option = option,
+                    selected = option.id == selectedOptionId,
+                    onSelected = {
+                        onOptionSelected(option.id)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnswerOptionRow(
+    option: AnswerOption,
+    selected: Boolean,
+    onSelected: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(
+                selected = selected,
+                onClick = onSelected,
+                role = Role.RadioButton
+            ),
+        colors = CardDefaults.cardColors(
+            containerColor = if (selected) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(
+                selected = selected,
+                onClick = null
+            )
+
+            Text(
+                text = option.text,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 10.dp),
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
     }
 }
 

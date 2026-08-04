@@ -36,8 +36,14 @@ sealed class AppDestination(
         icon = Icons.Default.Settings
     )
 
+    object Result : AppDestination(
+        route = "result",
+        label = "Result",
+        icon = Icons.Default.Star
+    )
+
     companion object {
-        // Define the main navigation destinations
+        // Define destinations shown in the bottom navigation
         val topLevelDestinations = listOf(
             Landing,
             Evaluation,
@@ -46,4 +52,3 @@ sealed class AppDestination(
         )
     }
 }
-
