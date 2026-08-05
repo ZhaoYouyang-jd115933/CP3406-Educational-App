@@ -1,15 +1,20 @@
 package com.youyangzhao.sourcesense.ui.evaluation
 
 import com.youyangzhao.sourcesense.domain.model.AnswerOption
+import com.youyangzhao.sourcesense.domain.model.DifficultyLevel
+import com.youyangzhao.sourcesense.domain.model.EvaluationAttemptSummary
 import com.youyangzhao.sourcesense.domain.model.EvaluationDimension
 import com.youyangzhao.sourcesense.domain.model.EvaluationQuestion
 import com.youyangzhao.sourcesense.domain.model.EvaluationResult
 import com.youyangzhao.sourcesense.domain.model.EvidenceCase
+import com.youyangzhao.sourcesense.domain.model.LearningModule
 import com.youyangzhao.sourcesense.domain.model.SourceType
 import com.youyangzhao.sourcesense.domain.repository.EvaluationHistoryRepository
-import com.youyangzhao.sourcesense.domain.repository.EvidenceRepository
+import com.youyangzhao.sourcesense.domain.repository.LearningModuleRepository
 import com.youyangzhao.sourcesense.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -28,248 +33,418 @@ class EvaluationViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun initialization_repositoryReturnsCase_loadsEvidenceCase() = runTest {
-        val repository = FakeEvidenceRepository(
-            evidenceCases = listOf(createTestEvidenceCase())
-        )
+    fun startModule_loadsSelectedModule() =
+        runTest(
+            context = mainDispatcherRule.testDispatcher
+        ) {
+            val viewModel = createViewModel()
 
-        val viewModel = EvaluationViewModel(
-            evidenceRepository = repository,
-            evaluationHistoryRepository =
-                FakeEvaluationHistoryRepository()
-        )
-
-        // Complete the evidence loading coroutine
-        advanceUntilIdle()
-
-        val state = viewModel.uiState.value
-
-        assertFalse(state.isLoading)
-        assertFalse(state.isSaving)
-        assertEquals("test_case", state.evidenceCase?.id)
-        assertEquals(0, state.currentQuestionIndex)
-        assertNull(state.errorMessage)
-        assertNull(state.saveErrorMessage)
-    }
-
-    @Test
-    fun moveToNextQuestion_withoutAnswer_staysOnCurrentQuestion() = runTest {
-        val viewModel = createLoadedViewModel()
-
-        viewModel.moveToNextQuestion()
-
-        val state = viewModel.uiState.value
-
-        assertEquals(0, state.currentQuestionIndex)
-        assertTrue(state.selectedAnswers.isEmpty())
-        assertNull(state.result)
-    }
-
-    @Test
-    fun selectAnswer_thenMoveToNextQuestion_updatesProgress() = runTest {
-        val viewModel = createLoadedViewModel()
-
-        viewModel.selectAnswer("correct_1")
-        viewModel.moveToNextQuestion()
-
-        val state = viewModel.uiState.value
-
-        assertEquals(1, state.currentQuestionIndex)
-        assertEquals("question_2", state.currentQuestion?.id)
-        assertEquals(
-            "correct_1",
-            state.selectedAnswers["question_1"]
-        )
-    }
-
-    @Test
-    fun moveToPreviousQuestion_afterMovingForward_returnsToFirstQuestion() =
-        runTest {
-            val viewModel = createLoadedViewModel()
-
-            viewModel.selectAnswer("correct_1")
-            viewModel.moveToNextQuestion()
-            viewModel.moveToPreviousQuestion()
+            viewModel.startModule(TEST_MODULE_ID)
+            advanceUntilIdle()
 
             val state = viewModel.uiState.value
 
-            assertEquals(0, state.currentQuestionIndex)
-            assertEquals("question_1", state.currentQuestion?.id)
-            assertEquals("correct_1", state.selectedOptionId)
+            assertFalse(state.isLoading)
+            assertEquals(
+                TEST_CASE_ID,
+                state.evidenceCase?.id
+            )
+            assertEquals(
+                DifficultyLevel.BEGINNER,
+                state.difficultyLevel
+            )
+            assertEquals(
+                0,
+                state.currentQuestionIndex
+            )
+            assertEquals(
+                2,
+                state.totalQuestions
+            )
+            assertNull(state.errorMessage)
         }
 
     @Test
-    fun finishLastQuestion_savesAndGeneratesEvaluationResult() = runTest {
-        val historyRepository = FakeEvaluationHistoryRepository()
-        val viewModel = createLoadedViewModel(
-            evaluationHistoryRepository = historyRepository
-        )
+    fun nextQuestion_beforeSubmittingAnswer_doesNothing() =
+        runTest(
+            context = mainDispatcherRule.testDispatcher
+        ) {
+            val viewModel =
+                createLoadedViewModel()
 
-        viewModel.selectAnswer("correct_1")
-        viewModel.moveToNextQuestion()
+            viewModel.selectAnswer(
+                optionId = "correct_1"
+            )
 
-        viewModel.selectAnswer("wrong_2")
-        viewModel.moveToNextQuestion()
+            viewModel.moveToNextQuestion()
 
-        // Complete the result saving coroutine
-        advanceUntilIdle()
+            val state = viewModel.uiState.value
 
-        val state = viewModel.uiState.value
-        val result = state.result
-
-        assertNotNull(result)
-        assertFalse(state.isSaving)
-        assertNull(state.saveErrorMessage)
-        assertEquals(1, result?.score)
-        assertEquals(2, result?.totalQuestions)
-        assertEquals(50, result?.percentage)
-        assertEquals(1, historyRepository.savedResults.size)
-        assertEquals(
-            result,
-            historyRepository.savedResults.first()
-        )
-    }
+            assertEquals(
+                0,
+                state.currentQuestionIndex
+            )
+            assertFalse(
+                state.isCurrentAnswerSubmitted
+            )
+            assertEquals(
+                "correct_1",
+                state.selectedOptionId
+            )
+        }
 
     @Test
-    fun restartEvaluation_clearsAnswersResultAndProgress() = runTest {
-        val viewModel = createLoadedViewModel()
+    fun submitAnswer_showsFeedbackAndLocksSelection() =
+        runTest(
+            context = mainDispatcherRule.testDispatcher
+        ) {
+            val viewModel =
+                createLoadedViewModel()
 
-        viewModel.selectAnswer("correct_1")
-        viewModel.moveToNextQuestion()
+            viewModel.selectAnswer(
+                optionId = "correct_1"
+            )
 
-        viewModel.selectAnswer("correct_2")
-        viewModel.moveToNextQuestion()
+            viewModel.submitCurrentAnswer()
 
-        // Complete the result saving coroutine
-        advanceUntilIdle()
+            // The submitted answer must remain locked
+            viewModel.selectAnswer(
+                optionId = "wrong_1"
+            )
 
-        assertNotNull(viewModel.uiState.value.result)
+            val state = viewModel.uiState.value
 
-        viewModel.restartEvaluation()
-
-        val state = viewModel.uiState.value
-
-        assertEquals(0, state.currentQuestionIndex)
-        assertTrue(state.selectedAnswers.isEmpty())
-        assertNull(state.result)
-        assertNull(state.saveErrorMessage)
-        assertFalse(state.isLoading)
-        assertFalse(state.isSaving)
-        assertNotNull(state.evidenceCase)
-    }
+            assertTrue(
+                state.isCurrentAnswerSubmitted
+            )
+            assertEquals(
+                true,
+                state.isCurrentAnswerCorrect
+            )
+            assertEquals(
+                "correct_1",
+                state.selectedOptionId
+            )
+            assertTrue(state.canContinue)
+        }
 
     @Test
-    fun initialization_repositoryFails_displaysErrorState() = runTest {
-        val repository = FakeEvidenceRepository(
-            failure = IllegalStateException("Test failure")
-        )
+    fun nextQuestion_afterSubmittingAnswer_updatesProgress() =
+        runTest(
+            context = mainDispatcherRule.testDispatcher
+        ) {
+            val viewModel =
+                createLoadedViewModel()
 
-        val viewModel = EvaluationViewModel(
-            evidenceRepository = repository,
-            evaluationHistoryRepository =
+            answerAndSubmit(
+                viewModel = viewModel,
+                optionId = "correct_1"
+            )
+
+            viewModel.moveToNextQuestion()
+
+            val state = viewModel.uiState.value
+
+            assertEquals(
+                1,
+                state.currentQuestionIndex
+            )
+            assertEquals(
+                "question_2",
+                state.currentQuestion?.id
+            )
+            assertFalse(
+                state.isCurrentAnswerSubmitted
+            )
+            assertNull(
+                state.selectedOptionId
+            )
+        }
+
+    @Test
+    fun finishLastQuestion_savesCompleteResultOnce() =
+        runTest(
+            context = mainDispatcherRule.testDispatcher
+        ) {
+            val historyRepository =
                 FakeEvaluationHistoryRepository()
-        )
 
-        // Complete the failing loading coroutine
-        advanceUntilIdle()
+            val viewModel =
+                createLoadedViewModel(
+                    historyRepository =
+                        historyRepository
+                )
 
-        val state = viewModel.uiState.value
+            answerAndSubmit(
+                viewModel = viewModel,
+                optionId = "correct_1"
+            )
 
-        assertFalse(state.isLoading)
-        assertNull(state.evidenceCase)
-        assertEquals(
-            "The evidence case could not be loaded.",
-            state.errorMessage
-        )
-    }
+            viewModel.moveToNextQuestion()
+
+            answerAndSubmit(
+                viewModel = viewModel,
+                optionId = "wrong_2"
+            )
+
+            viewModel.moveToNextQuestion()
+
+            // Complete the saving coroutine
+            advanceUntilIdle()
+
+            val result =
+                viewModel.uiState.value.result
+
+            assertNotNull(result)
+            assertEquals(
+                1,
+                result?.score
+            )
+            assertEquals(
+                2,
+                result?.totalQuestions
+            )
+            assertEquals(
+                50,
+                result?.percentage
+            )
+            assertEquals(
+                1,
+                historyRepository.savedResults.size
+            )
+        }
 
     @Test
-    fun finishLastQuestion_saveFails_displaysSaveError() = runTest {
-        val historyRepository = FakeEvaluationHistoryRepository(
-            failure = IllegalStateException("Database failure")
-        )
+    fun failedSave_canBeRetried() =
+        runTest(
+            context = mainDispatcherRule.testDispatcher
+        ) {
+            val historyRepository =
+                FakeEvaluationHistoryRepository(
+                    shouldFailSaving = true
+                )
 
-        val viewModel = createLoadedViewModel(
-            evaluationHistoryRepository = historyRepository
-        )
+            val viewModel =
+                createLoadedViewModel(
+                    historyRepository =
+                        historyRepository
+                )
 
-        viewModel.selectAnswer("correct_1")
-        viewModel.moveToNextQuestion()
+            answerAndSubmit(
+                viewModel = viewModel,
+                optionId = "correct_1"
+            )
 
-        viewModel.selectAnswer("correct_2")
-        viewModel.moveToNextQuestion()
+            viewModel.moveToNextQuestion()
 
-        // Complete the failing result saving coroutine
-        advanceUntilIdle()
+            answerAndSubmit(
+                viewModel = viewModel,
+                optionId = "correct_2"
+            )
 
-        val state = viewModel.uiState.value
+            viewModel.moveToNextQuestion()
+            advanceUntilIdle()
 
-        assertFalse(state.isSaving)
-        assertNull(state.result)
-        assertEquals(
-            "The result could not be saved. Please try again.",
-            state.saveErrorMessage
-        )
-        assertTrue(historyRepository.savedResults.isEmpty())
-    }
+            assertNull(
+                viewModel.uiState.value.result
+            )
 
-    private fun TestScope.createLoadedViewModel(
-        evaluationHistoryRepository:
+            assertEquals(
+                "The result could not be saved. Please try again.",
+                viewModel.uiState.value
+                    .saveErrorMessage
+            )
+
+            historyRepository
+                .shouldFailSaving = false
+
+            viewModel.retrySavingResult()
+            advanceUntilIdle()
+
+            assertNotNull(
+                viewModel.uiState.value.result
+            )
+            assertNull(
+                viewModel.uiState.value
+                    .saveErrorMessage
+            )
+            assertEquals(
+                1,
+                historyRepository.savedResults.size
+            )
+        }
+
+    @Test
+    fun restartEvaluation_clearsCurrentAttempt() =
+        runTest(
+            context = mainDispatcherRule.testDispatcher
+        ) {
+            val viewModel =
+                createLoadedViewModel()
+
+            answerAndSubmit(
+                viewModel = viewModel,
+                optionId = "correct_1"
+            )
+
+            viewModel.moveToNextQuestion()
+
+            answerAndSubmit(
+                viewModel = viewModel,
+                optionId = "correct_2"
+            )
+
+            viewModel.moveToNextQuestion()
+            advanceUntilIdle()
+
+            viewModel.restartEvaluation()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+
+            assertEquals(
+                0,
+                state.currentQuestionIndex
+            )
+            assertTrue(
+                state.selectedAnswers.isEmpty()
+            )
+            assertTrue(
+                state.submittedQuestionIds.isEmpty()
+            )
+            assertNull(state.result)
+            assertFalse(state.isLoading)
+            assertNotNull(state.evidenceCase)
+        }
+
+    @Test
+    fun missingModule_displaysError() =
+        runTest(
+            context = mainDispatcherRule.testDispatcher
+        ) {
+            val viewModel =
+                EvaluationViewModel(
+                    learningModuleRepository =
+                        FakeLearningModuleRepository(),
+                    evaluationHistoryRepository =
+                        FakeEvaluationHistoryRepository()
+                )
+
+            viewModel.startModule(
+                moduleId = "missing_module"
+            )
+
+            advanceUntilIdle()
+
+            assertEquals(
+                "The selected learning module is unavailable.",
+                viewModel.uiState.value
+                    .errorMessage
+            )
+        }
+
+    private fun TestScope
+            .createLoadedViewModel(
+        historyRepository:
         EvaluationHistoryRepository =
             FakeEvaluationHistoryRepository()
     ): EvaluationViewModel {
-        val repository = FakeEvidenceRepository(
-            evidenceCases = listOf(createTestEvidenceCase())
+        val viewModel = createViewModel(
+            historyRepository =
+                historyRepository
         )
 
-        val viewModel = EvaluationViewModel(
-            evidenceRepository = repository,
-            evaluationHistoryRepository =
-                evaluationHistoryRepository
+        viewModel.startModule(
+            moduleId = TEST_MODULE_ID
         )
 
-        // Finish repository loading before interacting with state
         advanceUntilIdle()
 
         return viewModel
     }
 
-    private fun createTestEvidenceCase(): EvidenceCase {
-        return EvidenceCase(
-            id = "test_case",
-            researchQuestion =
-                "Does social media use cause depression?",
-            title =
-                "Social Media Use and Student Wellbeing",
-            authors = "Test Author",
-            publication = "Test Journal",
-            publishedYear = 2026,
-            excerpt =
-                "The study reported an association.",
-            methodSummary =
-                "Cross-sectional survey",
-            sampleSummary =
-                "100 university students",
-            sourceType =
-                SourceType.PEER_REVIEWED_ARTICLE,
-            sourceNote =
-                "Test evidence case",
-            questions = listOf(
-                createQuestion(
-                    id = "question_1",
-                    dimension =
-                        EvaluationDimension.RELEVANCE,
-                    correctOptionId = "correct_1",
-                    incorrectOptionId = "wrong_1"
+    private fun createViewModel(
+        historyRepository:
+        EvaluationHistoryRepository =
+            FakeEvaluationHistoryRepository()
+    ): EvaluationViewModel {
+        return EvaluationViewModel(
+            learningModuleRepository =
+                FakeLearningModuleRepository(
+                    modules =
+                        listOf(
+                            createTestModule()
+                        )
                 ),
-                createQuestion(
-                    id = "question_2",
-                    dimension =
-                        EvaluationDimension.CAUSATION,
-                    correctOptionId = "correct_2",
-                    incorrectOptionId = "wrong_2"
+            evaluationHistoryRepository =
+                historyRepository
+        )
+    }
+
+    private fun answerAndSubmit(
+        viewModel: EvaluationViewModel,
+        optionId: String
+    ) {
+        viewModel.selectAnswer(
+            optionId = optionId
+        )
+
+        viewModel.submitCurrentAnswer()
+    }
+
+    private fun createTestModule():
+            LearningModule {
+        return LearningModule(
+            id = TEST_MODULE_ID,
+            difficultyLevel =
+                DifficultyLevel.BEGINNER,
+            title = "Test Module",
+            description = "Test description",
+            learningFocus = "Test focus",
+            evidenceCase =
+                EvidenceCase(
+                    id = TEST_CASE_ID,
+                    researchQuestion =
+                        "Does social media use cause depression?",
+                    title =
+                        "Social Media Use and Student Wellbeing",
+                    authors = "Test Author",
+                    publication = "Test Journal",
+                    publishedYear = 2026,
+                    excerpt =
+                        "The study reported an association.",
+                    methodSummary =
+                        "Cross-sectional survey",
+                    sampleSummary =
+                        "100 university students",
+                    sourceType =
+                        SourceType
+                            .PEER_REVIEWED_ARTICLE,
+                    sourceNote =
+                        "Test source",
+                    questions = listOf(
+                        createQuestion(
+                            id = "question_1",
+                            dimension =
+                                EvaluationDimension
+                                    .RELEVANCE,
+                            correctOptionId =
+                                "correct_1",
+                            wrongOptionId =
+                                "wrong_1"
+                        ),
+                        createQuestion(
+                            id = "question_2",
+                            dimension =
+                                EvaluationDimension
+                                    .CAUSATION,
+                            correctOptionId =
+                                "correct_2",
+                            wrongOptionId =
+                                "wrong_2"
+                        )
+                    )
                 )
-            )
         )
     }
 
@@ -277,72 +452,100 @@ class EvaluationViewModelTest {
         id: String,
         dimension: EvaluationDimension,
         correctOptionId: String,
-        incorrectOptionId: String
+        wrongOptionId: String
     ): EvaluationQuestion {
         return EvaluationQuestion(
             id = id,
             dimension = dimension,
-            prompt = "Evaluate this evidence.",
+            prompt =
+                "Evaluate this evidence.",
             options = listOf(
                 AnswerOption(
                     id = correctOptionId,
                     text = "Correct answer"
                 ),
                 AnswerOption(
-                    id = incorrectOptionId,
+                    id = wrongOptionId,
                     text = "Incorrect answer"
                 )
             ),
-            correctOptionId = correctOptionId,
-            explanation = "Test explanation",
-            learningTip = "Test learning tip"
+            correctOptionId =
+                correctOptionId,
+            explanation =
+                "Test explanation",
+            learningTip =
+                "Test learning tip"
         )
     }
 
-    private class FakeEvidenceRepository(
-        private val evidenceCases:
-        List<EvidenceCase> = emptyList(),
-        private val failure: Throwable? = null
-    ) : EvidenceRepository {
+    private class FakeLearningModuleRepository(
+        private val modules:
+        List<LearningModule> = emptyList()
+    ) : LearningModuleRepository {
 
-        override suspend fun getEvidenceCases():
-                List<EvidenceCase> {
-            failure?.let { throwable ->
-                throw throwable
+        override suspend fun
+                getModulesForDifficulty(
+            difficultyLevel:
+            DifficultyLevel
+        ): List<LearningModule> {
+            return modules.filter { module ->
+                module.difficultyLevel ==
+                        difficultyLevel
             }
-
-            return evidenceCases
         }
 
-        override suspend fun getEvidenceCase(
-            caseId: String
-        ): EvidenceCase? {
-            failure?.let { throwable ->
-                throw throwable
-            }
-
-            return evidenceCases.firstOrNull { evidenceCase ->
-                evidenceCase.id == caseId
+        override suspend fun
+                getLearningModule(
+            moduleId: String
+        ): LearningModule? {
+            return modules.firstOrNull { module ->
+                module.id == moduleId
             }
         }
     }
 
     private class FakeEvaluationHistoryRepository(
-        private val failure: Throwable? = null
+        var shouldFailSaving:
+        Boolean = false
     ) : EvaluationHistoryRepository {
 
-        val savedResults = mutableListOf<EvaluationResult>()
+        private val attemptsFlow =
+            MutableStateFlow<
+                    List<EvaluationAttemptSummary>
+                    >(
+                emptyList()
+            )
 
-        override suspend fun saveEvaluationResult(
+        val savedResults =
+            mutableListOf<EvaluationResult>()
+
+        override fun
+                observeEvaluationAttempts():
+                Flow<List<EvaluationAttemptSummary>> {
+            return attemptsFlow
+        }
+
+        override suspend fun
+                saveEvaluationResult(
             result: EvaluationResult
         ): Long {
-            failure?.let { throwable ->
-                throw throwable
+            if (shouldFailSaving) {
+                throw IllegalStateException(
+                    "Database failure"
+                )
             }
 
             savedResults += result
 
             return savedResults.size.toLong()
         }
+    }
+
+    private companion object {
+        const val TEST_MODULE_ID =
+            "test_module"
+
+        const val TEST_CASE_ID =
+            "test_case"
     }
 }
