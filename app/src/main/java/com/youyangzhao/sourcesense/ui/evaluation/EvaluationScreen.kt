@@ -1,5 +1,6 @@
 package com.youyangzhao.sourcesense.ui.evaluation
 
+import android.view.SoundEffectConstants
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,19 +39,37 @@ import com.youyangzhao.sourcesense.domain.model.EvidenceCase
 fun EvaluationRoute(
     viewModel: EvaluationViewModel,
     onEvaluationComplete: () -> Unit,
+    reduceAnimations: Boolean = false,
+    soundFeedbackEnabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val view = LocalView.current
 
     LaunchedEffect(uiState.result) {
         if (uiState.result != null) {
+            if (soundFeedbackEnabled) {
+                view.playSoundEffect(
+                    SoundEffectConstants.CLICK
+                )
+            }
+
             onEvaluationComplete()
         }
     }
 
     EvaluationScreen(
         uiState = uiState,
-        onOptionSelected = viewModel::selectAnswer,
+        reduceAnimations = reduceAnimations,
+        onOptionSelected = { optionId ->
+            if (soundFeedbackEnabled) {
+                view.playSoundEffect(
+                    SoundEffectConstants.CLICK
+                )
+            }
+
+            viewModel.selectAnswer(optionId)
+        },
         onPrevious = viewModel::moveToPreviousQuestion,
         onContinue = viewModel::moveToNextQuestion,
         onRetry = viewModel::retryLoading,
@@ -61,6 +81,7 @@ fun EvaluationRoute(
 @Composable
 fun EvaluationScreen(
     uiState: EvaluationUiState,
+    reduceAnimations: Boolean = false,
     onOptionSelected: (String) -> Unit,
     onPrevious: () -> Unit,
     onContinue: () -> Unit,
@@ -115,6 +136,7 @@ fun EvaluationScreen(
                 isLastQuestion = uiState.isLastQuestion,
                 isSaving = uiState.isSaving,
                 canContinue = uiState.canContinue,
+                reduceAnimations = reduceAnimations,
                 onOptionSelected = onOptionSelected,
                 onPrevious = onPrevious,
                 onContinue = onContinue,
@@ -226,6 +248,7 @@ private fun EvaluationContent(
     isLastQuestion: Boolean,
     isSaving: Boolean,
     canContinue: Boolean,
+    reduceAnimations: Boolean,
     onOptionSelected: (String) -> Unit,
     onPrevious: () -> Unit,
     onContinue: () -> Unit,
@@ -233,9 +256,16 @@ private fun EvaluationContent(
 ) {
     val listState = rememberLazyListState()
 
-    LaunchedEffect(questionNumber) {
-        // Return to the top for each new question
-        listState.animateScrollToItem(0)
+    LaunchedEffect(
+        questionNumber,
+        reduceAnimations
+    ) {
+        // Respect the reduced motion preference
+        if (reduceAnimations) {
+            listState.scrollToItem(0)
+        } else {
+            listState.animateScrollToItem(0)
+        }
     }
 
     LazyColumn(
@@ -354,7 +384,8 @@ private fun EvidenceCaseCard(
             )
 
             Text(
-                text = "${evidenceCase.publication}, ${evidenceCase.publishedYear}",
+                text = "${evidenceCase.publication}, " +
+                        "${evidenceCase.publishedYear}",
                 style = MaterialTheme.typography.bodyMedium
             )
 

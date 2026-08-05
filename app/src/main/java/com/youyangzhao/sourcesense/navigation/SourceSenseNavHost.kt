@@ -25,13 +25,15 @@ import androidx.navigation.compose.rememberNavController
 import com.youyangzhao.sourcesense.data.local.database.SourceSenseDatabase
 import com.youyangzhao.sourcesense.data.local.preferences.userSettingsDataStore
 import com.youyangzhao.sourcesense.data.repository.DataStoreUserSettingsRepository
-import com.youyangzhao.sourcesense.data.repository.LocalEvidenceRepository
+import com.youyangzhao.sourcesense.data.repository.LocalLearningModuleRepository
 import com.youyangzhao.sourcesense.data.repository.RoomEvaluationHistoryRepository
 import com.youyangzhao.sourcesense.data.repository.RoomStatisticsRepository
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationRoute
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationViewModel
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationViewModelFactory
-import com.youyangzhao.sourcesense.ui.landing.LandingScreen
+import com.youyangzhao.sourcesense.ui.landing.LandingRoute
+import com.youyangzhao.sourcesense.ui.landing.LandingViewModel
+import com.youyangzhao.sourcesense.ui.landing.LandingViewModelFactory
 import com.youyangzhao.sourcesense.ui.result.ResultRoute
 import com.youyangzhao.sourcesense.ui.settings.SettingsRoute
 import com.youyangzhao.sourcesense.ui.settings.SettingsViewModel
@@ -43,12 +45,18 @@ import com.youyangzhao.sourcesense.ui.statistics.StatisticsViewModelFactory
 @Composable
 fun SourceSenseNavHost(
     modifier: Modifier = Modifier,
-    reduceAnimations: Boolean = false
+    reduceAnimations: Boolean = false,
+    soundFeedbackEnabled: Boolean = true
 ) {
     val navController = rememberNavController()
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
-    val context = LocalContext.current.applicationContext
+    val backStackEntry by
+    navController.currentBackStackEntryAsState()
+
+    val currentRoute =
+        backStackEntry?.destination?.route
+
+    val context =
+        LocalContext.current.applicationContext
 
     val topLevelRoutes = remember {
         AppDestination.topLevelDestinations
@@ -58,38 +66,57 @@ fun SourceSenseNavHost(
             .toSet()
     }
 
-    val evidenceRepository = remember {
-        LocalEvidenceRepository()
+    val learningModuleRepository = remember {
+        LocalLearningModuleRepository()
     }
 
     val database = remember(context) {
         SourceSenseDatabase.getInstance(context)
     }
 
-    val evaluationHistoryRepository = remember(database) {
-        RoomEvaluationHistoryRepository(
-            evaluationAttemptDao = database.evaluationAttemptDao()
-        )
-    }
+    val evaluationHistoryRepository =
+        remember(database) {
+            RoomEvaluationHistoryRepository(
+                evaluationAttemptDao =
+                    database.evaluationAttemptDao()
+            )
+        }
 
-    val statisticsRepository = remember(database) {
-        RoomStatisticsRepository(
-            evaluationAttemptDao = database.evaluationAttemptDao()
-        )
-    }
+    val statisticsRepository =
+        remember(database) {
+            RoomStatisticsRepository(
+                evaluationAttemptDao =
+                    database.evaluationAttemptDao()
+            )
+        }
 
-    val userSettingsRepository = remember(context) {
-        DataStoreUserSettingsRepository(
-            dataStore = context.userSettingsDataStore
+    val userSettingsRepository =
+        remember(context) {
+            DataStoreUserSettingsRepository(
+                dataStore =
+                    context.userSettingsDataStore
+            )
+        }
+
+    val landingFactory = remember(
+        learningModuleRepository,
+        userSettingsRepository
+    ) {
+        LandingViewModelFactory(
+            learningModuleRepository =
+                learningModuleRepository,
+            userSettingsRepository =
+                userSettingsRepository
         )
     }
 
     val evaluationFactory = remember(
-        evidenceRepository,
+        learningModuleRepository,
         evaluationHistoryRepository
     ) {
         EvaluationViewModelFactory(
-            evidenceRepository = evidenceRepository,
+            learningModuleRepository =
+                learningModuleRepository,
             evaluationHistoryRepository =
                 evaluationHistoryRepository
         )
@@ -99,7 +126,8 @@ fun SourceSenseNavHost(
         statisticsRepository
     ) {
         StatisticsViewModelFactory(
-            statisticsRepository = statisticsRepository
+            statisticsRepository =
+                statisticsRepository
         )
     }
 
@@ -107,66 +135,85 @@ fun SourceSenseNavHost(
         userSettingsRepository
     ) {
         SettingsViewModelFactory(
-            userSettingsRepository = userSettingsRepository
+            userSettingsRepository =
+                userSettingsRepository
         )
     }
 
-    val evaluationViewModel: EvaluationViewModel = viewModel(
-        factory = evaluationFactory
-    )
+    val landingViewModel: LandingViewModel =
+        viewModel(
+            factory = landingFactory
+        )
 
-    val statisticsViewModel: StatisticsViewModel = viewModel(
-        factory = statisticsFactory
-    )
+    val evaluationViewModel: EvaluationViewModel =
+        viewModel(
+            factory = evaluationFactory
+        )
 
-    val settingsViewModel: SettingsViewModel = viewModel(
-        factory = settingsFactory
-    )
+    val statisticsViewModel: StatisticsViewModel =
+        viewModel(
+            factory = statisticsFactory
+        )
+
+    val settingsViewModel: SettingsViewModel =
+        viewModel(
+            factory = settingsFactory
+        )
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         bottomBar = {
             if (currentRoute in topLevelRoutes) {
                 NavigationBar {
-                    AppDestination.topLevelDestinations.forEach { destination ->
-                        NavigationBarItem(
-                            selected = currentRoute == destination.route,
-                            onClick = {
-                                navController.navigate(destination.route) {
-                                    // Preserve main screen state
-                                    popUpTo(
-                                        navController.graph
-                                            .findStartDestination()
-                                            .id
+                    AppDestination.topLevelDestinations
+                        .forEach { destination ->
+                            NavigationBarItem(
+                                selected =
+                                    currentRoute ==
+                                            destination.route,
+                                onClick = {
+                                    navController.navigate(
+                                        destination.route
                                     ) {
-                                        saveState = true
-                                    }
+                                        // Preserve main screen state
+                                        popUpTo(
+                                            navController.graph
+                                                .findStartDestination()
+                                                .id
+                                        ) {
+                                            saveState = true
+                                        }
 
-                                    launchSingleTop = true
-                                    restoreState = true
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                                icon = {
+                                    Icon(
+                                        imageVector =
+                                            destination.icon,
+                                        contentDescription =
+                                            destination.label
+                                    )
+                                },
+                                label = {
+                                    Text(
+                                        text =
+                                            destination.label
+                                    )
                                 }
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = destination.icon,
-                                    contentDescription = destination.label
-                                )
-                            },
-                            label = {
-                                Text(
-                                    text = destination.label
-                                )
-                            }
-                        )
-                    }
+                            )
+                        }
                 }
             }
         }
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = AppDestination.Landing.route,
-            modifier = Modifier.padding(innerPadding),
+            startDestination =
+                AppDestination.Landing.route,
+            modifier =
+                Modifier.padding(innerPadding),
             enterTransition = {
                 if (reduceAnimations) {
                     EnterTransition.None
@@ -196,10 +243,15 @@ fun SourceSenseNavHost(
                 }
             }
         ) {
-            composable(AppDestination.Landing.route) {
-                LandingScreen(
-                    onStartEvaluation = {
-                        evaluationViewModel.restartEvaluation()
+            composable(
+                AppDestination.Landing.route
+            ) {
+                LandingRoute(
+                    viewModel = landingViewModel,
+                    onStartModule = { moduleId ->
+                        evaluationViewModel.startModule(
+                            moduleId = moduleId
+                        )
 
                         navController.navigate(
                             AppDestination.Evaluation.route
@@ -210,15 +262,22 @@ fun SourceSenseNavHost(
                 )
             }
 
-            composable(AppDestination.Evaluation.route) {
+            composable(
+                AppDestination.Evaluation.route
+            ) {
                 EvaluationRoute(
                     viewModel = evaluationViewModel,
+                    reduceAnimations =
+                        reduceAnimations,
+                    soundFeedbackEnabled =
+                        soundFeedbackEnabled,
                     onEvaluationComplete = {
                         navController.navigate(
                             AppDestination.Result.route
                         ) {
-                            // Remove the completed evaluation
-                            popUpTo(AppDestination.Evaluation.route) {
+                            popUpTo(
+                                AppDestination.Evaluation.route
+                            ) {
                                 inclusive = true
                             }
 
@@ -228,16 +287,21 @@ fun SourceSenseNavHost(
                 )
             }
 
-            composable(AppDestination.Result.route) {
+            composable(
+                AppDestination.Result.route
+            ) {
                 ResultRoute(
                     viewModel = evaluationViewModel,
                     onTryAgain = {
-                        evaluationViewModel.restartEvaluation()
+                        evaluationViewModel
+                            .restartEvaluation()
 
                         navController.navigate(
                             AppDestination.Evaluation.route
                         ) {
-                            popUpTo(AppDestination.Result.route) {
+                            popUpTo(
+                                AppDestination.Result.route
+                            ) {
                                 inclusive = true
                             }
 
@@ -245,8 +309,6 @@ fun SourceSenseNavHost(
                         }
                     },
                     onBackHome = {
-                        evaluationViewModel.restartEvaluation()
-
                         navController.navigate(
                             AppDestination.Landing.route
                         ) {
@@ -262,13 +324,17 @@ fun SourceSenseNavHost(
                 )
             }
 
-            composable(AppDestination.Statistics.route) {
+            composable(
+                AppDestination.Statistics.route
+            ) {
                 StatisticsRoute(
                     viewModel = statisticsViewModel
                 )
             }
 
-            composable(AppDestination.Settings.route) {
+            composable(
+                AppDestination.Settings.route
+            ) {
                 SettingsRoute(
                     viewModel = settingsViewModel
                 )

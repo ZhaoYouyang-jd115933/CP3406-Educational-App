@@ -47,7 +47,10 @@ class MainActivity : ComponentActivity() {
                 useLargerText = userSettings.useLargerText
             ) {
                 SourceSenseNavHost(
-                    reduceAnimations = userSettings.reduceAnimations
+                    reduceAnimations =
+                        userSettings.reduceAnimations,
+                    soundFeedbackEnabled =
+                        userSettings.soundFeedbackEnabled
                 )
             }
         }

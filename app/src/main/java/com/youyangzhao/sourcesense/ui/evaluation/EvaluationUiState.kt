@@ -1,5 +1,6 @@
 package com.youyangzhao.sourcesense.ui.evaluation
 
+import com.youyangzhao.sourcesense.domain.model.DifficultyLevel
 import com.youyangzhao.sourcesense.domain.model.EvaluationQuestion
 import com.youyangzhao.sourcesense.domain.model.EvaluationResult
 import com.youyangzhao.sourcesense.domain.model.EvidenceCase
@@ -8,6 +9,8 @@ data class EvaluationUiState(
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val evidenceCase: EvidenceCase? = null,
+    val difficultyLevel: DifficultyLevel =
+        DifficultyLevel.INTERMEDIATE,
     val currentQuestionIndex: Int = 0,
     val selectedAnswers: Map<String, String> = emptyMap(),
     val result: EvaluationResult? = null,
@@ -43,7 +46,8 @@ data class EvaluationUiState(
                 return 0f
             }
 
-            return questionNumber.toFloat() / totalQuestions.toFloat()
+            return questionNumber.toFloat() /
+                    totalQuestions.toFloat()
         }
 
     val isFirstQuestion: Boolean

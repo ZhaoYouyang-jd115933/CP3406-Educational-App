@@ -16,7 +16,9 @@ data class EvaluationResult(
     val evidenceCaseId: String,
     val score: Int,
     val totalQuestions: Int,
-    val questionResults: List<QuestionResult>
+    val questionResults: List<QuestionResult>,
+    val difficultyLevel: DifficultyLevel =
+        DifficultyLevel.INTERMEDIATE
 ) {
     val percentage: Int
         get() {
@@ -28,20 +30,26 @@ data class EvaluationResult(
         }
 }
 
-// Calculate results without depending on Android framework code
+// Calculate the result using the active difficulty
 fun calculateEvaluationResult(
     evidenceCase: EvidenceCase,
-    selectedAnswers: Map<String, String>
+    selectedAnswers: Map<String, String>,
+    difficultyLevel: DifficultyLevel =
+        DifficultyLevel.INTERMEDIATE
 ): EvaluationResult {
     val questionResults = evidenceCase.questions.map { question ->
-        val selectedOptionId = selectedAnswers[question.id]
-        val selectedOption = question.options.firstOrNull { option ->
-            option.id == selectedOptionId
-        }
+        val selectedOptionId =
+            selectedAnswers[question.id]
 
-        val correctOption = question.options.first { option ->
-            option.id == question.correctOptionId
-        }
+        val selectedOption =
+            question.options.firstOrNull { option ->
+                option.id == selectedOptionId
+            }
+
+        val correctOption =
+            question.options.first { option ->
+                option.id == question.correctOptionId
+            }
 
         QuestionResult(
             questionId = question.id,
@@ -50,7 +58,8 @@ fun calculateEvaluationResult(
             selectedOptionText = selectedOption?.text,
             correctOptionId = question.correctOptionId,
             correctOptionText = correctOption.text,
-            isCorrect = selectedOptionId == question.correctOptionId,
+            isCorrect =
+                selectedOptionId == question.correctOptionId,
             explanation = question.explanation,
             learningTip = question.learningTip
         )
@@ -62,7 +71,8 @@ fun calculateEvaluationResult(
             result.isCorrect
         },
         totalQuestions = questionResults.size,
-        questionResults = questionResults
+        questionResults = questionResults,
+        difficultyLevel = difficultyLevel
     )
 }
 

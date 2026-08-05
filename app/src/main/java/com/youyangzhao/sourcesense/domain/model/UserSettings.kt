@@ -6,15 +6,15 @@ enum class DifficultyLevel(
 ) {
     BEGINNER(
         displayName = "Beginner",
-        description = "Clear guidance and simpler evidence cases"
+        description = "Four core questions covering essential concepts"
     ),
     INTERMEDIATE(
         displayName = "Intermediate",
-        description = "Balanced guidance and moderate complexity"
+        description = "Six questions covering the complete evaluation"
     ),
     ADVANCED(
         displayName = "Advanced",
-        description = "Less guidance and more complex evidence cases"
+        description = "Eight questions including deeper evidence limitations"
     )
 }
 
