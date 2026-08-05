@@ -34,8 +34,11 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility =
+            JavaVersion.VERSION_11
+
+        targetCompatibility =
+            JavaVersion.VERSION_11
     }
 
     buildFeatures {
@@ -44,15 +47,21 @@ android {
 }
 
 dependencies {
-    implementation(platform(libs.androidx.compose.bom))
+    implementation(
+        platform(libs.androidx.compose.bom)
+    )
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(
+        libs.androidx.compose.ui.tooling.preview
+    )
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(
+        libs.androidx.lifecycle.runtime.ktx
+    )
 
     // Support lifecycle-aware Compose state collection
     implementation(
@@ -94,6 +103,15 @@ dependencies {
     implementation(
         "androidx.datastore:datastore-preferences:1.2.1"
     )
+
+    // Connect to the Crossref REST API
+    implementation(libs.retrofit)
+
+    // Convert API JSON into Kotlin data objects
+    implementation(libs.retrofit.gson)
+
+    // Log network requests during development
+    implementation(libs.okhttp.logging)
 
     testImplementation(libs.junit)
 
