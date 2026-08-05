@@ -24,6 +24,12 @@ sealed class AppDestination(
         icon = Icons.Default.Search
     )
 
+    object SourceReview : AppDestination(
+        route = "source_review",
+        label = "Review Source",
+        icon = Icons.Default.Search
+    )
+
     object Evaluation : AppDestination(
         route = "evaluation",
         label = "Evaluate",
@@ -49,7 +55,7 @@ sealed class AppDestination(
     )
 
     companion object {
-        // Define destinations shown in the bottom navigation
+        // Show only top-level destinations in bottom navigation
         val topLevelDestinations = listOf(
             Landing,
             Explore,

@@ -4,19 +4,23 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.youyangzhao.sourcesense.domain.repository.AcademicSourceRepository
+import com.youyangzhao.sourcesense.domain.repository.SourceReviewRepository
 import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 
 class ExploreViewModel(
     private val academicSourceRepository:
-        AcademicSourceRepository
+    AcademicSourceRepository,
+    private val sourceReviewRepository:
+    SourceReviewRepository
 ) : ViewModel() {
 
     private val _uiState =
@@ -27,6 +31,33 @@ class ExploreViewModel(
 
     private var searchJob: Job? = null
     private var lastSubmittedQuery: String? = null
+
+    init {
+        observeSavedReviews()
+    }
+
+    private fun observeSavedReviews() {
+        viewModelScope.launch {
+            sourceReviewRepository
+                .observeSourceReviews()
+                .catch {
+                    _uiState.update { currentState ->
+                        currentState.copy(
+                            reviewHistoryErrorMessage =
+                                "Saved source reviews could not be loaded."
+                        )
+                    }
+                }
+                .collect { reviews ->
+                    _uiState.update { currentState ->
+                        currentState.copy(
+                            savedReviews = reviews,
+                            reviewHistoryErrorMessage = null
+                        )
+                    }
+                }
+        }
+    }
 
     fun updateQuery(
         query: String
@@ -100,25 +131,22 @@ class ExploreViewModel(
                 exception: IOException
             ) {
                 showSearchError(
-                    message = """
-                        Unable to connect. Check your internet connection and try again.
-                    """.trimIndent()
+                    message =
+                        "Unable to connect. Check your internet connection and try again."
                 )
             } catch (
                 exception: HttpException
             ) {
                 showSearchError(
-                    message = """
-                        Crossref could not complete the search. Please try again later.
-                    """.trimIndent()
+                    message =
+                        "Crossref could not complete the search. Please try again later."
                 )
             } catch (
                 exception: Exception
             ) {
                 showSearchError(
-                    message = """
-                        Academic sources could not be loaded. Please try again.
-                    """.trimIndent()
+                    message =
+                        "Academic sources could not be loaded. Please try again."
                 )
             }
         }
@@ -161,7 +189,14 @@ class ExploreViewModel(
         searchJob?.cancel()
         lastSubmittedQuery = null
 
-        _uiState.value = ExploreUiState()
+        _uiState.update { currentState ->
+            ExploreUiState(
+                savedReviews =
+                    currentState.savedReviews,
+                reviewHistoryErrorMessage =
+                    currentState.reviewHistoryErrorMessage
+            )
+        }
     }
 
     fun clearError() {
@@ -175,7 +210,9 @@ class ExploreViewModel(
 
 class ExploreViewModelFactory(
     private val academicSourceRepository:
-        AcademicSourceRepository
+    AcademicSourceRepository,
+    private val sourceReviewRepository:
+    SourceReviewRepository
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -189,7 +226,9 @@ class ExploreViewModelFactory(
         ) {
             return ExploreViewModel(
                 academicSourceRepository =
-                    academicSourceRepository
+                    academicSourceRepository,
+                sourceReviewRepository =
+                    sourceReviewRepository
             ) as T
         }
 

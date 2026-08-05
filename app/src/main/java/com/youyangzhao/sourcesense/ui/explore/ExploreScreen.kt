@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -29,11 +30,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youyangzhao.sourcesense.domain.model.AcademicSource
+import com.youyangzhao.sourcesense.domain.model.RealSourceReview
 
 @Composable
 fun ExploreRoute(
     viewModel: ExploreViewModel,
-    onSourceSelected: (AcademicSource) -> Unit,
+    onOpenSource: (AcademicSource) -> Unit,
+    onEvaluateSource:
+        (AcademicSource, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val uiState by
@@ -45,7 +49,13 @@ fun ExploreRoute(
         onSearch = viewModel::searchSources,
         onRetry = viewModel::retrySearch,
         onClear = viewModel::clearSearch,
-        onSourceSelected = onSourceSelected,
+        onOpenSource = onOpenSource,
+        onEvaluateSource = { source ->
+            onEvaluateSource(
+                source,
+                uiState.query.trim()
+            )
+        },
         modifier = modifier
     )
 }
@@ -57,7 +67,8 @@ fun ExploreScreen(
     onSearch: () -> Unit,
     onRetry: () -> Unit,
     onClear: () -> Unit,
-    onSourceSelected: (AcademicSource) -> Unit,
+    onOpenSource: (AcademicSource) -> Unit,
+    onEvaluateSource: (AcademicSource) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -86,6 +97,26 @@ fun ExploreScreen(
                 onSearch = onSearch,
                 onClear = onClear
             )
+        }
+
+        if (uiState.hasSavedReviews) {
+            item {
+                SavedReviewsCard(
+                    reviews =
+                        uiState.savedReviews.take(3),
+                    totalReviewCount =
+                        uiState.savedReviews.size
+                )
+            }
+        } else if (
+            uiState.reviewHistoryErrorMessage != null
+        ) {
+            item {
+                ReviewHistoryErrorCard(
+                    message =
+                        uiState.reviewHistoryErrorMessage
+                )
+            }
         }
 
         when {
@@ -129,8 +160,11 @@ fun ExploreScreen(
                 ) { source ->
                     AcademicSourceCard(
                         source = source,
-                        onOpenPaperPage = {
-                            onSourceSelected(source)
+                        onOpenSource = {
+                            onOpenSource(source)
+                        },
+                        onEvaluateSource = {
+                            onEvaluateSource(source)
                         }
                     )
                 }
@@ -169,9 +203,8 @@ private fun ExploreHeader() {
         )
 
         Text(
-            text = """
-                Search Crossref for real academic publications and inspect their publication information.
-            """.trimIndent(),
+            text =
+                "Search real academic publications, read the official source and apply your SourceSense evaluation skills.",
             style = MaterialTheme.typography.bodyLarge,
             color =
                 MaterialTheme.colorScheme.onSurfaceVariant,
@@ -205,9 +238,8 @@ private fun SourceSearchSection(
             )
 
             Text(
-                text = """
-                    Enter a topic, article title, author or DOI.
-                """.trimIndent(),
+                text =
+                    "Enter a topic, article title, author or DOI.",
                 style =
                     MaterialTheme.typography.bodyMedium,
                 color =
@@ -225,7 +257,8 @@ private fun SourceSearchSection(
                 },
                 placeholder = {
                     Text(
-                        text = "e.g. artificial intelligence education"
+                        text =
+                            "e.g. artificial intelligence education"
                     )
                 },
                 singleLine = true,
@@ -349,9 +382,8 @@ private fun EmptyResultsContent(
             )
 
             Text(
-                text = """
-                    Crossref did not return usable academic sources for "$query". Try broader or different keywords.
-                """.trimIndent(),
+                text =
+                    "Crossref did not return usable academic sources for \"$query\". Try broader or different keywords.",
                 style =
                     MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
@@ -398,7 +430,8 @@ private fun ResultsHeader(
 @Composable
 private fun AcademicSourceCard(
     source: AcademicSource,
-    onOpenPaperPage: () -> Unit
+    onOpenSource: () -> Unit,
+    onEvaluateSource: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -443,27 +476,26 @@ private fun AcademicSourceCard(
                 value = source.doi
             )
 
-            if (source.hasAbstract) {
-                Text(
-                    text = "Abstract available",
-                    style =
-                        MaterialTheme.typography.labelMedium,
-                    color =
-                        MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
-                )
-            } else {
-                Text(
-                    text = "Abstract unavailable",
-                    style =
-                        MaterialTheme.typography.labelMedium,
-                    color =
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = if (source.hasAbstract) {
+                    "Abstract available"
+                } else {
+                    "Abstract unavailable"
+                },
+                style =
+                    MaterialTheme.typography.labelMedium,
+                color = if (source.hasAbstract) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme
+                        .onSurfaceVariant
+                },
+                fontWeight = FontWeight.Bold
+            )
 
             Text(
-                text = "Real publication record from Crossref",
+                text =
+                    "Real publication record from Crossref",
                 style =
                     MaterialTheme.typography.labelMedium,
                 color =
@@ -471,12 +503,21 @@ private fun AcademicSourceCard(
                 fontWeight = FontWeight.Bold
             )
 
-            OutlinedButton(
-                onClick = onOpenPaperPage,
+            Button(
+                onClick = onEvaluateSource,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Open Paper Page"
+                    text = "Evaluate Source"
+                )
+            }
+
+            OutlinedButton(
+                onClick = onOpenSource,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Read Source"
                 )
             }
         }
@@ -510,6 +551,95 @@ private fun SourceInformationRow(
 }
 
 @Composable
+private fun SavedReviewsCard(
+    reviews: List<RealSourceReview>,
+    totalReviewCount: Int
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement =
+                Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Your Source Reviews",
+                style =
+                    MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = when (totalReviewCount) {
+                    1 -> "1 structured review saved locally"
+                    else ->
+                        "$totalReviewCount structured reviews saved locally"
+                },
+                style =
+                    MaterialTheme.typography.bodyMedium,
+                color =
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            reviews.forEach { review ->
+                Column(
+                    verticalArrangement =
+                        Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(
+                        text = review.title,
+                        style =
+                            MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    Text(
+                        text =
+                            "${review.citationDecision.displayName} · ${review.reviewDepth.displayName}",
+                        style =
+                            MaterialTheme.typography.labelMedium,
+                        color =
+                            MaterialTheme.colorScheme.primary
+                    )
+
+                    Text(
+                        text =
+                            "Topic: ${review.searchTopic}",
+                        style =
+                            MaterialTheme.typography.bodySmall,
+                        color =
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReviewHistoryErrorCard(
+    message: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor =
+                MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Text(
+            text = message,
+            modifier = Modifier.padding(18.dp),
+            style =
+                MaterialTheme.typography.bodyMedium,
+            color =
+                MaterialTheme.colorScheme.onErrorContainer
+        )
+    }
+}
+
+@Composable
 private fun ExploreIntroductionCard() {
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -527,15 +657,14 @@ private fun ExploreIntroductionCard() {
             )
 
             Text(
-                text = """
-                    Search for a real academic publication, inspect its metadata and open its official DOI page.
-                """.trimIndent(),
+                text =
+                    "Search for a real publication, read its official page and complete a structured source review using the concepts practised in the learning modules.",
                 style =
                     MaterialTheme.typography.bodyLarge
             )
 
             Text(
-                text = "Crossref may provide:",
+                text = "The Explore workflow:",
                 style =
                     MaterialTheme.typography.labelLarge,
                 color =
@@ -544,22 +673,15 @@ private fun ExploreIntroductionCard() {
             )
 
             Text(
-                text = """
-                    • Article title and authors
-                    • Publication year
-                    • Journal or publication name
-                    • Publisher and source type
-                    • DOI and official publication page
-                    • Abstract for some records
-                """.trimIndent(),
+                text =
+                    "1. Search for a real academic source\n2. Read the official source page\n3. Evaluate relevance, publication information and currency\n4. Record what still needs verification\n5. Save a structured reflection locally",
                 style =
                     MaterialTheme.typography.bodyMedium
             )
 
             Text(
-                text = """
-                    The official publication page may provide an abstract, full text, PDF access or institutional access options. Availability is controlled by the publisher.
-                """.trimIndent(),
+                text =
+                    "Crossref provides publication metadata, not a complete quality judgement. SourceSense will not pretend that metadata alone proves the strength of a study.",
                 style =
                     MaterialTheme.typography.bodyMedium,
                 color =

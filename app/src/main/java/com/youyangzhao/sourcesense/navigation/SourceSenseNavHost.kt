@@ -1,5 +1,6 @@
 package com.youyangzhao.sourcesense.navigation
 
+import android.content.Context
 import android.net.Uri
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
@@ -32,7 +33,9 @@ import com.youyangzhao.sourcesense.data.repository.CrossrefAcademicSourceReposit
 import com.youyangzhao.sourcesense.data.repository.DataStoreUserSettingsRepository
 import com.youyangzhao.sourcesense.data.repository.LocalLearningModuleRepository
 import com.youyangzhao.sourcesense.data.repository.RoomEvaluationHistoryRepository
+import com.youyangzhao.sourcesense.data.repository.RoomSourceReviewRepository
 import com.youyangzhao.sourcesense.data.repository.RoomStatisticsRepository
+import com.youyangzhao.sourcesense.domain.model.AcademicSource
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationRoute
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationViewModel
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationViewModelFactory
@@ -43,6 +46,9 @@ import com.youyangzhao.sourcesense.ui.landing.LandingRoute
 import com.youyangzhao.sourcesense.ui.landing.LandingViewModel
 import com.youyangzhao.sourcesense.ui.landing.LandingViewModelFactory
 import com.youyangzhao.sourcesense.ui.result.ResultRoute
+import com.youyangzhao.sourcesense.ui.review.RealSourceReviewRoute
+import com.youyangzhao.sourcesense.ui.review.RealSourceReviewViewModel
+import com.youyangzhao.sourcesense.ui.review.RealSourceReviewViewModelFactory
 import com.youyangzhao.sourcesense.ui.settings.SettingsRoute
 import com.youyangzhao.sourcesense.ui.settings.SettingsViewModel
 import com.youyangzhao.sourcesense.ui.settings.SettingsViewModelFactory
@@ -75,17 +81,20 @@ fun SourceSenseNavHost(
         context.applicationContext
 
     val topLevelRoutes = remember {
-        AppDestination.topLevelDestinations
+        AppDestination
+            .topLevelDestinations
             .map { destination ->
                 destination.route
             }
             .toSet()
     }
 
+    // Create the local learning content repository
     val learningModuleRepository = remember {
         LocalLearningModuleRepository()
     }
 
+    // Create the repository used for real literature searches
     val academicSourceRepository = remember {
         CrossrefAcademicSourceRepository(
             apiService =
@@ -93,14 +102,16 @@ fun SourceSenseNavHost(
         )
     }
 
+    // Create one Room database instance for all local records
     val database = remember(
         applicationContext
     ) {
         SourceSenseDatabase.getInstance(
-            applicationContext
+            context = applicationContext
         )
     }
 
+    // Store and observe learning-module attempts
     val evaluationHistoryRepository =
         remember(database) {
             RoomEvaluationHistoryRepository(
@@ -109,6 +120,16 @@ fun SourceSenseNavHost(
             )
         }
 
+    // Store and observe structured real-source reviews
+    val sourceReviewRepository =
+        remember(database) {
+            RoomSourceReviewRepository(
+                sourceReviewDao =
+                    database.sourceReviewDao()
+            )
+        }
+
+    // Read evaluation statistics from Room
     val statisticsRepository =
         remember(database) {
             RoomStatisticsRepository(
@@ -117,6 +138,7 @@ fun SourceSenseNavHost(
             )
         }
 
+    // Store user preferences with DataStore
     val userSettingsRepository =
         remember(applicationContext) {
             DataStoreUserSettingsRepository(
@@ -154,11 +176,23 @@ fun SourceSenseNavHost(
     }
 
     val exploreFactory = remember(
-        academicSourceRepository
+        academicSourceRepository,
+        sourceReviewRepository
     ) {
         ExploreViewModelFactory(
             academicSourceRepository =
-                academicSourceRepository
+                academicSourceRepository,
+            sourceReviewRepository =
+                sourceReviewRepository
+        )
+    }
+
+    val sourceReviewFactory = remember(
+        sourceReviewRepository
+    ) {
+        RealSourceReviewViewModelFactory(
+            sourceReviewRepository =
+                sourceReviewRepository
         )
     }
 
@@ -198,6 +232,12 @@ fun SourceSenseNavHost(
             factory = exploreFactory
         )
 
+    val sourceReviewViewModel:
+            RealSourceReviewViewModel =
+        viewModel(
+            factory = sourceReviewFactory
+        )
+
     val statisticsViewModel:
             StatisticsViewModel =
         viewModel(
@@ -226,9 +266,10 @@ fun SourceSenseNavHost(
                                     navController.navigate(
                                         destination.route
                                     ) {
-                                        // Preserve screen state
+                                        // Preserve each top-level screen state
                                         popUpTo(
-                                            navController.graph
+                                            navController
+                                                .graph
                                                 .findStartDestination()
                                                 .id
                                         ) {
@@ -296,7 +337,8 @@ fun SourceSenseNavHost(
             }
         ) {
             composable(
-                AppDestination.Landing.route
+                route =
+                    AppDestination.Landing.route
             ) {
                 LandingRoute(
                     viewModel =
@@ -319,64 +361,63 @@ fun SourceSenseNavHost(
             }
 
             composable(
-                AppDestination.Explore.route
+                route =
+                    AppDestination.Explore.route
             ) {
                 ExploreRoute(
                     viewModel =
                         exploreViewModel,
-                    onSourceSelected = { source ->
-                        val cleanDoi = source.doi
-                            .trim()
-                            .removePrefix(
-                                "https://doi.org/"
+                    onOpenSource = { source ->
+                        openSourcePage(
+                            context = context,
+                            source = source
+                        )
+                    },
+                    onEvaluateSource = {
+                            source,
+                            searchTopic ->
+
+                        // Pass the selected real source into the review flow
+                        sourceReviewViewModel
+                            .startReview(
+                                source = source,
+                                searchTopic =
+                                    searchTopic
                             )
-                            .removePrefix(
-                                "http://doi.org/"
-                            )
-                            .removePrefix("doi:")
-                            .trim()
 
-                        if (cleanDoi.isBlank()) {
-                            Toast.makeText(
-                                context,
-                                "This source does not have a valid DOI.",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        } else {
-                            val encodedDoi =
-                                Uri.encode(
-                                    cleanDoi,
-                                    "/"
-                                )
-
-                            val paperPageUri =
-                                Uri.parse(
-                                    "https://doi.org/$encodedDoi"
-                                )
-
-                            runCatching {
-                                CustomTabsIntent
-                                    .Builder()
-                                    .setShowTitle(true)
-                                    .build()
-                                    .launchUrl(
-                                        context,
-                                        paperPageUri
-                                    )
-                            }.onFailure {
-                                Toast.makeText(
-                                    context,
-                                    "Unable to open this paper page.",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
+                        navController.navigate(
+                            AppDestination
+                                .SourceReview
+                                .route
+                        ) {
+                            launchSingleTop = true
                         }
                     }
                 )
             }
 
             composable(
-                AppDestination.Evaluation.route
+                route =
+                    AppDestination.SourceReview.route
+            ) {
+                RealSourceReviewRoute(
+                    viewModel =
+                        sourceReviewViewModel,
+                    onBackToExplore = {
+                        navController.popBackStack()
+                    },
+                    onOpenPaperPage = { source ->
+                        openSourcePage(
+                            context = context,
+                            source = source
+                        )
+                    }
+                )
+            }
+
+            composable(
+                route =
+                    AppDestination.Evaluation.route
             ) {
                 EvaluationRoute(
                     viewModel =
@@ -391,6 +432,7 @@ fun SourceSenseNavHost(
                                 .Result
                                 .route
                         ) {
+                            // Remove the completed evaluation screen
                             popUpTo(
                                 AppDestination
                                     .Evaluation
@@ -406,7 +448,8 @@ fun SourceSenseNavHost(
             }
 
             composable(
-                AppDestination.Result.route
+                route =
+                    AppDestination.Result.route
             ) {
                 ResultRoute(
                     viewModel =
@@ -420,6 +463,7 @@ fun SourceSenseNavHost(
                                 .Evaluation
                                 .route
                         ) {
+                            // Replace the result with a new attempt
                             popUpTo(
                                 AppDestination
                                     .Result
@@ -437,8 +481,10 @@ fun SourceSenseNavHost(
                                 .Landing
                                 .route
                         ) {
+                            // Return to the main destination
                             popUpTo(
-                                navController.graph
+                                navController
+                                    .graph
                                     .findStartDestination()
                                     .id
                             )
@@ -450,7 +496,8 @@ fun SourceSenseNavHost(
             }
 
             composable(
-                AppDestination.Statistics.route
+                route =
+                    AppDestination.Statistics.route
             ) {
                 StatisticsRoute(
                     viewModel =
@@ -459,7 +506,8 @@ fun SourceSenseNavHost(
             }
 
             composable(
-                AppDestination.Settings.route
+                route =
+                    AppDestination.Settings.route
             ) {
                 SettingsRoute(
                     viewModel =
@@ -468,4 +516,82 @@ fun SourceSenseNavHost(
             }
         }
     }
+}
+
+private fun openSourcePage(
+    context: Context,
+    source: AcademicSource
+) {
+    val cleanDoi = source.doi
+        .trim()
+        .removePrefix(
+            "https://doi.org/"
+        )
+        .removePrefix(
+            "http://doi.org/"
+        )
+        .removePrefix("doi:")
+        .trim()
+
+    // Open the DOI landing page instead of a machine-readable XML link
+    val doiPageUri =
+        if (cleanDoi.isNotBlank()) {
+            val encodedDoi = Uri.encode(
+                cleanDoi,
+                "/"
+            )
+
+            Uri.parse(
+                "https://doi.org/$encodedDoi"
+            )
+        } else {
+            null
+        }
+
+    // Use the publisher page only when the DOI is unavailable
+    val publisherPageUri = source.url
+        ?.takeIf { url ->
+            url.isSafeWebUrl()
+        }
+        ?.let(Uri::parse)
+
+    val destinationUri =
+        doiPageUri ?: publisherPageUri
+
+    if (destinationUri == null) {
+        Toast.makeText(
+            context,
+            "This source does not have a valid paper page.",
+            Toast.LENGTH_LONG
+        ).show()
+
+        return
+    }
+
+    runCatching {
+        CustomTabsIntent
+            .Builder()
+            .setShowTitle(true)
+            .build()
+            .launchUrl(
+                context,
+                destinationUri
+            )
+    }.onFailure {
+        Toast.makeText(
+            context,
+            "Unable to open this paper page.",
+            Toast.LENGTH_LONG
+        ).show()
+    }
+}
+
+private fun String.isSafeWebUrl(): Boolean {
+    return startsWith(
+        prefix = "https://",
+        ignoreCase = true
+    ) || startsWith(
+        prefix = "http://",
+        ignoreCase = true
+    )
 }
