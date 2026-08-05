@@ -128,13 +128,16 @@ fun SourceSenseNavHost(
 
     val landingFactory = remember(
         learningModuleRepository,
-        userSettingsRepository
+        userSettingsRepository,
+        evaluationHistoryRepository
     ) {
         LandingViewModelFactory(
             learningModuleRepository =
                 learningModuleRepository,
             userSettingsRepository =
-                userSettingsRepository
+                userSettingsRepository,
+            evaluationHistoryRepository =
+                evaluationHistoryRepository
         )
     }
 

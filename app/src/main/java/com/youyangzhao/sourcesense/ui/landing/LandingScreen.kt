@@ -13,6 +13,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -24,7 +25,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.youyangzhao.sourcesense.domain.model.LearningModule
 
 @Composable
 fun LandingRoute(
@@ -211,11 +211,17 @@ private fun LandingModuleContent(
         }
 
         item {
+            // Show progress for the selected difficulty
             CurrentLevelCard(
                 levelName =
                     uiState.difficultyLevel.displayName,
                 levelDescription =
-                    uiState.difficultyLevel.description
+                    uiState.difficultyLevel.description,
+                completedModuleCount =
+                    uiState.completedModuleCount,
+                totalModuleCount =
+                    uiState.totalModuleCount,
+                progress = uiState.overallProgress
             )
         }
 
@@ -244,14 +250,16 @@ private fun LandingModuleContent(
 
         items(
             items = uiState.modules,
-            key = { module ->
-                module.id
+            key = { moduleUiModel ->
+                moduleUiModel.module.id
             }
-        ) { module ->
+        ) { moduleUiModel ->
             LearningModuleCard(
-                module = module,
+                moduleUiModel = moduleUiModel,
                 onStart = {
-                    onStartModule(module.id)
+                    onStartModule(
+                        moduleUiModel.module.id
+                    )
                 }
             )
         }
@@ -265,7 +273,10 @@ private fun LandingModuleContent(
 @Composable
 private fun CurrentLevelCard(
     levelName: String,
-    levelDescription: String
+    levelDescription: String,
+    completedModuleCount: Int,
+    totalModuleCount: Int,
+    progress: Float
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -276,7 +287,7 @@ private fun CurrentLevelCard(
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = "Current Level",
@@ -297,6 +308,20 @@ private fun CurrentLevelCard(
                 style = MaterialTheme.typography.bodyMedium
             )
 
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Text(
+                text =
+                    "$completedModuleCount of $totalModuleCount modules completed",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth()
+            )
+
             Text(
                 text = "Change your level in Settings.",
                 style = MaterialTheme.typography.bodySmall,
@@ -309,9 +334,11 @@ private fun CurrentLevelCard(
 
 @Composable
 private fun LearningModuleCard(
-    module: LearningModule,
+    moduleUiModel: LearningModuleUiModel,
     onStart: () -> Unit
 ) {
+    val module = moduleUiModel.module
+
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -347,19 +374,85 @@ private fun LearningModuleCard(
             Text(
                 text = when (module.questionCount) {
                     1 -> "1 practice question"
-                    else -> "${module.questionCount} practice questions"
+                    else ->
+                        "${module.questionCount} practice questions"
                 },
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold
+            )
+
+            // Show the best result recorded for this module
+            ModuleProgressContent(
+                moduleUiModel = moduleUiModel
             )
 
             OutlinedButton(
                 onClick = onStart,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = "Start Module")
+                Text(
+                    text = if (moduleUiModel.isCompleted) {
+                        "Try Again"
+                    } else {
+                        "Start Module"
+                    }
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun ModuleProgressContent(
+    moduleUiModel: LearningModuleUiModel
+) {
+    if (!moduleUiModel.isCompleted) {
+        Text(
+            text = "Not Started",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        return
+    }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = "Completed",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold
+        )
+
+        val bestScore = moduleUiModel.bestScore
+        val bestTotalQuestions =
+            moduleUiModel.bestTotalQuestions
+        val bestPercentage =
+            moduleUiModel.bestPercentage
+
+        if (
+            bestScore != null &&
+            bestTotalQuestions != null &&
+            bestPercentage != null
+        ) {
+            Text(
+                text =
+                    "Best score: $bestScore / $bestTotalQuestions ($bestPercentage%)",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        Text(
+            text = when (moduleUiModel.attemptCount) {
+                1 -> "Attempts: 1"
+                else ->
+                    "Attempts: ${moduleUiModel.attemptCount}"
+            },
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 

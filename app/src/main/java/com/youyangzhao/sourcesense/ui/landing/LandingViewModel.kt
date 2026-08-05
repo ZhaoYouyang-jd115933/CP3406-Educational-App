@@ -4,11 +4,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.youyangzhao.sourcesense.domain.model.DifficultyLevel
+import com.youyangzhao.sourcesense.domain.model.EvaluationAttemptSummary
+import com.youyangzhao.sourcesense.domain.model.LearningModule
+import com.youyangzhao.sourcesense.domain.repository.EvaluationHistoryRepository
 import com.youyangzhao.sourcesense.domain.repository.LearningModuleRepository
 import com.youyangzhao.sourcesense.domain.repository.UserSettingsRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -18,7 +24,9 @@ class LandingViewModel(
     private val learningModuleRepository:
     LearningModuleRepository,
     private val userSettingsRepository:
-    UserSettingsRepository
+    UserSettingsRepository,
+    private val evaluationHistoryRepository:
+    EvaluationHistoryRepository
 ) : ViewModel() {
 
     private val _uiState =
@@ -27,32 +35,57 @@ class LandingViewModel(
     val uiState: StateFlow<LandingUiState> =
         _uiState.asStateFlow()
 
+    private var observationJob: Job? = null
+
     init {
-        observeDifficultyLevel()
+        observeLandingContent()
     }
 
-    private fun observeDifficultyLevel() {
-        viewModelScope.launch {
-            userSettingsRepository
-                .observeUserSettings()
-                .map { settings ->
-                    settings.difficultyLevel
+    private fun observeLandingContent() {
+        observationJob?.cancel()
+
+        observationJob = viewModelScope.launch {
+            combine(
+                userSettingsRepository
+                    .observeUserSettings()
+                    .map { settings ->
+                        settings.difficultyLevel
+                    }
+                    .distinctUntilChanged(),
+                evaluationHistoryRepository
+                    .observeEvaluationAttempts()
+            ) { difficultyLevel, attempts ->
+                difficultyLevel to attempts
+            }
+                .catch {
+                    _uiState.update { currentState ->
+                        currentState.copy(
+                            isLoading = false,
+                            errorMessage =
+                                "Learning progress could not be loaded."
+                        )
+                    }
                 }
-                .distinctUntilChanged()
-                .collect { difficultyLevel ->
+                .collect { content ->
                     loadModules(
-                        difficultyLevel = difficultyLevel
+                        difficultyLevel = content.first,
+                        attempts = content.second
                     )
                 }
         }
     }
 
     private suspend fun loadModules(
-        difficultyLevel: DifficultyLevel
+        difficultyLevel: DifficultyLevel,
+        attempts: List<EvaluationAttemptSummary>
     ) {
+        val shouldShowLoading =
+            _uiState.value.difficultyLevel != difficultyLevel ||
+                    !_uiState.value.hasModules
+
         _uiState.update { currentState ->
             currentState.copy(
-                isLoading = true,
+                isLoading = shouldShowLoading,
                 difficultyLevel = difficultyLevel,
                 errorMessage = null
             )
@@ -64,11 +97,18 @@ class LandingViewModel(
                     difficultyLevel = difficultyLevel
                 )
         }.onSuccess { modules ->
+            val moduleUiModels = modules.map { module ->
+                createModuleUiModel(
+                    module = module,
+                    attempts = attempts
+                )
+            }
+
             _uiState.update { currentState ->
                 currentState.copy(
                     isLoading = false,
                     difficultyLevel = difficultyLevel,
-                    modules = modules,
+                    modules = moduleUiModels,
                     errorMessage = null
                 )
             }
@@ -85,13 +125,45 @@ class LandingViewModel(
         }
     }
 
+    private fun createModuleUiModel(
+        module: LearningModule,
+        attempts: List<EvaluationAttemptSummary>
+    ): LearningModuleUiModel {
+        // Ignore attempts from an older question set
+        val matchingAttempts = attempts.filter { attempt ->
+            attempt.evidenceCaseId == module.evidenceCase.id &&
+                    attempt.totalQuestions == module.questionCount
+        }
+
+        val bestAttempt = matchingAttempts.maxWithOrNull(
+            compareBy<EvaluationAttemptSummary> { attempt ->
+                attempt.percentage
+            }.thenBy { attempt ->
+                attempt.score
+            }.thenBy { attempt ->
+                attempt.completedAt
+            }
+        )
+
+        return LearningModuleUiModel(
+            module = module,
+            attemptCount = matchingAttempts.size,
+            bestScore = bestAttempt?.score,
+            bestTotalQuestions =
+                bestAttempt?.totalQuestions,
+            bestPercentage = bestAttempt?.percentage
+        )
+    }
+
     fun retryLoading() {
-        viewModelScope.launch {
-            loadModules(
-                difficultyLevel =
-                    _uiState.value.difficultyLevel
+        _uiState.update { currentState ->
+            currentState.copy(
+                isLoading = true,
+                errorMessage = null
             )
         }
+
+        observeLandingContent()
     }
 
     fun clearError() {
@@ -107,7 +179,9 @@ class LandingViewModelFactory(
     private val learningModuleRepository:
     LearningModuleRepository,
     private val userSettingsRepository:
-    UserSettingsRepository
+    UserSettingsRepository,
+    private val evaluationHistoryRepository:
+    EvaluationHistoryRepository
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -123,7 +197,9 @@ class LandingViewModelFactory(
                 learningModuleRepository =
                     learningModuleRepository,
                 userSettingsRepository =
-                    userSettingsRepository
+                    userSettingsRepository,
+                evaluationHistoryRepository =
+                    evaluationHistoryRepository
             ) as T
         }
 
