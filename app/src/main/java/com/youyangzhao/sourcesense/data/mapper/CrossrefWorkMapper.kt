@@ -2,6 +2,7 @@ package com.youyangzhao.sourcesense.data.mapper
 
 import com.youyangzhao.sourcesense.data.remote.dto.CrossrefAuthorDto
 import com.youyangzhao.sourcesense.data.remote.dto.CrossrefDateDto
+import com.youyangzhao.sourcesense.data.remote.dto.CrossrefLinkDto
 import com.youyangzhao.sourcesense.data.remote.dto.CrossrefWorkDto
 import com.youyangzhao.sourcesense.domain.model.AcademicSource
 
@@ -68,6 +69,26 @@ fun CrossrefWorkDto.toAcademicSourceOrNull():
         }
         .distinct()
 
+    val openLicenseUrl = license
+        .orEmpty()
+        .mapNotNull { licenseDto ->
+            licenseDto.url.toValidWebUrl()
+        }
+        .firstOrNull { licenseUrl ->
+            licenseUrl.isOpenAccessLicense()
+        }
+
+    val readableFullTextUrl = link
+        .orEmpty()
+        .mapNotNull { linkDto ->
+            linkDto.toReadableLink()
+        }
+        .sortedBy { readableLink ->
+            readableLink.priority
+        }
+        .firstOrNull()
+        ?.url
+
     return AcademicSource(
         doi = cleanDoi,
         title = cleanTitle,
@@ -80,15 +101,71 @@ fun CrossrefWorkDto.toAcademicSourceOrNull():
             ?.takeIf { value ->
                 value.isNotBlank()
             },
-        url = url
-            ?.trim()
-            ?.takeIf { value ->
-                value.isNotBlank()
-            }
+        url = url.toValidWebUrl()
             ?: "https://doi.org/$cleanDoi",
         abstractText = cleanAbstract,
-        subjects = cleanSubjects
+        subjects = cleanSubjects,
+        fullTextUrl = readableFullTextUrl,
+        licenseUrl = openLicenseUrl
     )
+}
+
+private data class ReadableLink(
+    val url: String,
+    val priority: Int
+)
+
+private fun CrossrefLinkDto.toReadableLink():
+        ReadableLink? {
+
+    val cleanUrl =
+        url.toValidWebUrl() ?: return null
+
+    val cleanContentType =
+        contentType.orEmpty().lowercase()
+
+    val priority = when {
+        cleanContentType.contains("html") -> 0
+        cleanContentType.contains("pdf") -> 1
+        else -> 2
+    }
+
+    return ReadableLink(
+        url = cleanUrl,
+        priority = priority
+    )
+}
+
+private fun String.isOpenAccessLicense(): Boolean {
+    return contains(
+        other = "creativecommons.org",
+        ignoreCase = true
+    ) || contains(
+        other = "open-access",
+        ignoreCase = true
+    ) || contains(
+        other = "openaccess",
+        ignoreCase = true
+    )
+}
+
+private fun String?.toValidWebUrl(): String? {
+    val cleanUrl = this
+        ?.trim()
+        ?.takeIf { value ->
+            value.isNotBlank()
+        }
+        ?: return null
+
+    return cleanUrl.takeIf { value ->
+        value.startsWith(
+            prefix = "https://",
+            ignoreCase = true
+        ) || value.startsWith(
+            prefix = "http://",
+            ignoreCase = true
+        )
+    }
 }
 
 private fun CrossrefAuthorDto.toDisplayName():

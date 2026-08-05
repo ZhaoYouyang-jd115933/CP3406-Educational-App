@@ -10,10 +10,11 @@ interface CrossrefApiService {
     suspend fun searchWorks(
         @Query("query.bibliographic")
         query: String,
+        @Query("filter")
+        filter: String =
+            "type:journal-article,has-full-text:true,has-license:true",
         @Query("rows")
-        rows: Int = 10,
-        @Query("mailto")
-        contactEmail: String? = null
+        rows: Int = 30
     ): CrossrefWorksResponseDto
 }
 

@@ -21,12 +21,16 @@ class CrossrefAcademicSourceRepository(
 
         val safeLimit = limit.coerceIn(
             minimumValue = 1,
-            maximumValue = 20
+            maximumValue = 10
         )
+
+        val requestedRows = (
+                safeLimit * 4
+                ).coerceAtMost(40)
 
         val response = apiService.searchWorks(
             query = cleanQuery,
-            rows = safeLimit
+            rows = requestedRows
         )
 
         return response.message
@@ -34,6 +38,9 @@ class CrossrefAcademicSourceRepository(
             .orEmpty()
             .mapNotNull { workDto ->
                 workDto.toAcademicSourceOrNull()
+            }
+            .filter { source ->
+                source.isReadableOpenAccess
             }
             .distinctBy { source ->
                 source.doi.lowercase()

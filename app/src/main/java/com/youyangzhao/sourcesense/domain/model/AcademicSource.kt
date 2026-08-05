@@ -10,7 +10,9 @@ data class AcademicSource(
     val sourceType: String? = null,
     val url: String? = null,
     val abstractText: String? = null,
-    val subjects: List<String> = emptyList()
+    val subjects: List<String> = emptyList(),
+    val fullTextUrl: String? = null,
+    val licenseUrl: String? = null
 ) {
     val authorsDisplay: String
         get() = if (authors.isEmpty()) {
@@ -43,6 +45,12 @@ data class AcademicSource(
 
     val hasAbstract: Boolean
         get() = !abstractText.isNullOrBlank()
+
+    val isReadableOpenAccess: Boolean
+        get() {
+            return !fullTextUrl.isNullOrBlank() &&
+                    !licenseUrl.isNullOrBlank()
+        }
 
     init {
         require(doi.isNotBlank()) {

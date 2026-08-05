@@ -16,7 +16,7 @@ import retrofit2.HttpException
 
 class ExploreViewModel(
     private val academicSourceRepository:
-    AcademicSourceRepository
+        AcademicSourceRepository
 ) : ViewModel() {
 
     private val _uiState =
@@ -175,7 +175,7 @@ class ExploreViewModel(
 
 class ExploreViewModelFactory(
     private val academicSourceRepository:
-    AcademicSourceRepository
+        AcademicSourceRepository
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")

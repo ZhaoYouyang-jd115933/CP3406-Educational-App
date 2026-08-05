@@ -38,7 +38,9 @@ data class CrossrefWorkDto(
     val url: String?,
     @SerializedName("abstract")
     val abstractText: String?,
-    val subject: List<String>?
+    val subject: List<String>?,
+    val link: List<CrossrefLinkDto>?,
+    val license: List<CrossrefLicenseDto>?
 )
 
 data class CrossrefAuthorDto(
@@ -52,5 +54,25 @@ data class CrossrefAuthorDto(
 data class CrossrefDateDto(
     @SerializedName("date-parts")
     val dateParts: List<List<Int>>?
+)
+
+data class CrossrefLinkDto(
+    @SerializedName("URL")
+    val url: String?,
+    @SerializedName("content-type")
+    val contentType: String?,
+    @SerializedName("content-version")
+    val contentVersion: String?,
+    @SerializedName("intended-application")
+    val intendedApplication: String?
+)
+
+data class CrossrefLicenseDto(
+    @SerializedName("URL")
+    val url: String?,
+    @SerializedName("content-version")
+    val contentVersion: String?,
+    @SerializedName("delay-in-days")
+    val delayInDays: Int?
 )
 

@@ -1,5 +1,8 @@
 package com.youyangzhao.sourcesense.navigation
 
+import android.net.Uri
+import android.widget.Toast
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
@@ -24,6 +27,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.youyangzhao.sourcesense.data.local.database.SourceSenseDatabase
 import com.youyangzhao.sourcesense.data.local.preferences.userSettingsDataStore
+import com.youyangzhao.sourcesense.data.remote.api.CrossrefApiClient
+import com.youyangzhao.sourcesense.data.repository.CrossrefAcademicSourceRepository
 import com.youyangzhao.sourcesense.data.repository.DataStoreUserSettingsRepository
 import com.youyangzhao.sourcesense.data.repository.LocalLearningModuleRepository
 import com.youyangzhao.sourcesense.data.repository.RoomEvaluationHistoryRepository
@@ -31,6 +36,9 @@ import com.youyangzhao.sourcesense.data.repository.RoomStatisticsRepository
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationRoute
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationViewModel
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationViewModelFactory
+import com.youyangzhao.sourcesense.ui.explore.ExploreRoute
+import com.youyangzhao.sourcesense.ui.explore.ExploreViewModel
+import com.youyangzhao.sourcesense.ui.explore.ExploreViewModelFactory
 import com.youyangzhao.sourcesense.ui.landing.LandingRoute
 import com.youyangzhao.sourcesense.ui.landing.LandingViewModel
 import com.youyangzhao.sourcesense.ui.landing.LandingViewModelFactory
@@ -48,15 +56,23 @@ fun SourceSenseNavHost(
     reduceAnimations: Boolean = false,
     soundFeedbackEnabled: Boolean = true
 ) {
-    val navController = rememberNavController()
+    val navController =
+        rememberNavController()
+
     val backStackEntry by
-    navController.currentBackStackEntryAsState()
+    navController
+        .currentBackStackEntryAsState()
 
     val currentRoute =
-        backStackEntry?.destination?.route
+        backStackEntry
+            ?.destination
+            ?.route
 
     val context =
-        LocalContext.current.applicationContext
+        LocalContext.current
+
+    val applicationContext =
+        context.applicationContext
 
     val topLevelRoutes = remember {
         AppDestination.topLevelDestinations
@@ -70,8 +86,19 @@ fun SourceSenseNavHost(
         LocalLearningModuleRepository()
     }
 
-    val database = remember(context) {
-        SourceSenseDatabase.getInstance(context)
+    val academicSourceRepository = remember {
+        CrossrefAcademicSourceRepository(
+            apiService =
+                CrossrefApiClient.service
+        )
+    }
+
+    val database = remember(
+        applicationContext
+    ) {
+        SourceSenseDatabase.getInstance(
+            applicationContext
+        )
     }
 
     val evaluationHistoryRepository =
@@ -91,10 +118,11 @@ fun SourceSenseNavHost(
         }
 
     val userSettingsRepository =
-        remember(context) {
+        remember(applicationContext) {
             DataStoreUserSettingsRepository(
                 dataStore =
-                    context.userSettingsDataStore
+                    applicationContext
+                        .userSettingsDataStore
             )
         }
 
@@ -122,6 +150,15 @@ fun SourceSenseNavHost(
         )
     }
 
+    val exploreFactory = remember(
+        academicSourceRepository
+    ) {
+        ExploreViewModelFactory(
+            academicSourceRepository =
+                academicSourceRepository
+        )
+    }
+
     val statisticsFactory = remember(
         statisticsRepository
     ) {
@@ -140,22 +177,32 @@ fun SourceSenseNavHost(
         )
     }
 
-    val landingViewModel: LandingViewModel =
+    val landingViewModel:
+            LandingViewModel =
         viewModel(
             factory = landingFactory
         )
 
-    val evaluationViewModel: EvaluationViewModel =
+    val evaluationViewModel:
+            EvaluationViewModel =
         viewModel(
             factory = evaluationFactory
         )
 
-    val statisticsViewModel: StatisticsViewModel =
+    val exploreViewModel:
+            ExploreViewModel =
+        viewModel(
+            factory = exploreFactory
+        )
+
+    val statisticsViewModel:
+            StatisticsViewModel =
         viewModel(
             factory = statisticsFactory
         )
 
-    val settingsViewModel: SettingsViewModel =
+    val settingsViewModel:
+            SettingsViewModel =
         viewModel(
             factory = settingsFactory
         )
@@ -165,7 +212,8 @@ fun SourceSenseNavHost(
         bottomBar = {
             if (currentRoute in topLevelRoutes) {
                 NavigationBar {
-                    AppDestination.topLevelDestinations
+                    AppDestination
+                        .topLevelDestinations
                         .forEach { destination ->
                             NavigationBarItem(
                                 selected =
@@ -175,7 +223,7 @@ fun SourceSenseNavHost(
                                     navController.navigate(
                                         destination.route
                                     ) {
-                                        // Preserve main screen state
+                                        // Preserve screen state
                                         popUpTo(
                                             navController.graph
                                                 .findStartDestination()
@@ -212,8 +260,9 @@ fun SourceSenseNavHost(
             navController = navController,
             startDestination =
                 AppDestination.Landing.route,
-            modifier =
-                Modifier.padding(innerPadding),
+            modifier = Modifier.padding(
+                innerPadding
+            ),
             enterTransition = {
                 if (reduceAnimations) {
                     EnterTransition.None
@@ -247,16 +296,77 @@ fun SourceSenseNavHost(
                 AppDestination.Landing.route
             ) {
                 LandingRoute(
-                    viewModel = landingViewModel,
+                    viewModel =
+                        landingViewModel,
                     onStartModule = { moduleId ->
-                        evaluationViewModel.startModule(
-                            moduleId = moduleId
-                        )
+                        evaluationViewModel
+                            .startModule(
+                                moduleId = moduleId
+                            )
 
                         navController.navigate(
-                            AppDestination.Evaluation.route
+                            AppDestination
+                                .Evaluation
+                                .route
                         ) {
                             launchSingleTop = true
+                        }
+                    }
+                )
+            }
+
+            composable(
+                AppDestination.Explore.route
+            ) {
+                ExploreRoute(
+                    viewModel =
+                        exploreViewModel,
+                    onSourceSelected = { source ->
+                        val cleanDoi = source.doi
+                            .trim()
+                            .removePrefix(
+                                "https://doi.org/"
+                            )
+                            .removePrefix(
+                                "http://doi.org/"
+                            )
+                            .removePrefix("doi:")
+                            .trim()
+
+                        if (cleanDoi.isBlank()) {
+                            Toast.makeText(
+                                context,
+                                "This source does not have a valid DOI.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        } else {
+                            val encodedDoi =
+                                Uri.encode(
+                                    cleanDoi,
+                                    "/"
+                                )
+
+                            val paperPageUri =
+                                Uri.parse(
+                                    "https://doi.org/$encodedDoi"
+                                )
+
+                            runCatching {
+                                CustomTabsIntent
+                                    .Builder()
+                                    .setShowTitle(true)
+                                    .build()
+                                    .launchUrl(
+                                        context,
+                                        paperPageUri
+                                    )
+                            }.onFailure {
+                                Toast.makeText(
+                                    context,
+                                    "Unable to open this paper page.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
                         }
                     }
                 )
@@ -266,17 +376,22 @@ fun SourceSenseNavHost(
                 AppDestination.Evaluation.route
             ) {
                 EvaluationRoute(
-                    viewModel = evaluationViewModel,
+                    viewModel =
+                        evaluationViewModel,
                     reduceAnimations =
                         reduceAnimations,
                     soundFeedbackEnabled =
                         soundFeedbackEnabled,
                     onEvaluationComplete = {
                         navController.navigate(
-                            AppDestination.Result.route
+                            AppDestination
+                                .Result
+                                .route
                         ) {
                             popUpTo(
-                                AppDestination.Evaluation.route
+                                AppDestination
+                                    .Evaluation
+                                    .route
                             ) {
                                 inclusive = true
                             }
@@ -291,16 +406,21 @@ fun SourceSenseNavHost(
                 AppDestination.Result.route
             ) {
                 ResultRoute(
-                    viewModel = evaluationViewModel,
+                    viewModel =
+                        evaluationViewModel,
                     onTryAgain = {
                         evaluationViewModel
                             .restartEvaluation()
 
                         navController.navigate(
-                            AppDestination.Evaluation.route
+                            AppDestination
+                                .Evaluation
+                                .route
                         ) {
                             popUpTo(
-                                AppDestination.Result.route
+                                AppDestination
+                                    .Result
+                                    .route
                             ) {
                                 inclusive = true
                             }
@@ -310,7 +430,9 @@ fun SourceSenseNavHost(
                     },
                     onBackHome = {
                         navController.navigate(
-                            AppDestination.Landing.route
+                            AppDestination
+                                .Landing
+                                .route
                         ) {
                             popUpTo(
                                 navController.graph
@@ -328,7 +450,8 @@ fun SourceSenseNavHost(
                 AppDestination.Statistics.route
             ) {
                 StatisticsRoute(
-                    viewModel = statisticsViewModel
+                    viewModel =
+                        statisticsViewModel
                 )
             }
 
@@ -336,10 +459,10 @@ fun SourceSenseNavHost(
                 AppDestination.Settings.route
             ) {
                 SettingsRoute(
-                    viewModel = settingsViewModel
+                    viewModel =
+                        settingsViewModel
                 )
             }
         }
     }
 }
-

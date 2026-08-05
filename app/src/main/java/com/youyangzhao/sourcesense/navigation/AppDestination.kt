@@ -24,12 +24,6 @@ sealed class AppDestination(
         icon = Icons.Default.Search
     )
 
-    object SourceDetails : AppDestination(
-        route = "source_details",
-        label = "Source Details",
-        icon = Icons.Default.Search
-    )
-
     object Evaluation : AppDestination(
         route = "evaluation",
         label = "Evaluate",
