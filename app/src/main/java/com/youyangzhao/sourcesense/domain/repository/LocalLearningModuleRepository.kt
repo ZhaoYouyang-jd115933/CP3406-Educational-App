@@ -16,7 +16,12 @@ class LocalLearningModuleRepository : LearningModuleRepository {
         createSourceTypeModule(),
         createCredibilityModule(),
         createCausationModule(),
-        createClaimsAndCitationsModule()
+        createClaimsAndCitationsModule(),
+        createResearchMethodModule(),
+        createSampleQualityModule(),
+        createGeneralisabilityModule(),
+        createIntermediateEvidenceStrengthModule(),
+        createBiasAndConflictsModule()
     )
 
     override suspend fun getModulesForDifficulty(
@@ -394,6 +399,396 @@ class LocalLearningModuleRepository : LearningModuleRepository {
             """.trimIndent(),
             learningFocus = """
                 Keep academic claims within the wording and limits of the original evidence.
+            """.trimIndent(),
+            evidenceCase = evidenceCase
+        )
+    }
+
+    private fun createResearchMethodModule(): LearningModule {
+        val evidenceCase = EvidenceCase(
+            id = "intermediate_research_method_case",
+            researchQuestion = """
+                Does a study-planning app improve university students' examination performance?
+            """.trimIndent(),
+            title = "Testing a Digital Study-Planning App",
+            authors = "L. Ng and T. Harris",
+            publication = "Journal of Educational Technology",
+            publishedYear = 2026,
+            excerpt = """
+                Researchers randomly assigned 120 university students to either use a 
+                study-planning app for six weeks or continue with their normal study 
+                practices. Both groups completed the same examination at the end.
+            """.trimIndent(),
+            methodSummary = "Randomised controlled experiment",
+            sampleSummary = """
+                120 university students randomly assigned to two groups
+            """.trimIndent(),
+            sourceType = SourceType.PEER_REVIEWED_ARTICLE,
+            sourceNote = """
+                This is a fictional practice source created for educational use.
+            """.trimIndent(),
+            questions = listOf(
+                EvaluationQuestion(
+                    id = "intermediate_research_method_question_1",
+                    dimension = EvaluationDimension.CAUSATION,
+                    prompt = """
+                        Which feature most strengthens this study's ability to examine causation?
+                    """.trimIndent(),
+                    options = listOf(
+                        AnswerOption(
+                            id = "random_assignment",
+                            text = """
+                                Students were randomly assigned to an app group and a comparison group
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "recent_publication",
+                            text = """
+                                The study was published recently
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "academic_title",
+                            text = """
+                                The article has an academic-sounding title
+                            """.trimIndent()
+                        )
+                    ),
+                    correctOptionId = "random_assignment",
+                    explanation = """
+                        Random assignment and a comparison group help reduce systematic 
+                        differences between the groups. This makes a causal interpretation 
+                        more reasonable than it would be in an observational survey.
+                    """.trimIndent(),
+                    learningTip = """
+                        Match the research method to the claim. Causal questions usually 
+                        require stronger designs than descriptive or correlational questions.
+                    """.trimIndent()
+                )
+            )
+        )
+
+        return LearningModule(
+            id = "intermediate_research_method",
+            difficultyLevel = DifficultyLevel.INTERMEDIATE,
+            title = "Research Method",
+            description = """
+                Judge whether a study design is suitable for the research question.
+            """.trimIndent(),
+            learningFocus = """
+                Connect experiments, surveys and observational designs with the claims they can support.
+            """.trimIndent(),
+            evidenceCase = evidenceCase
+        )
+    }
+
+    private fun createSampleQualityModule(): LearningModule {
+        val evidenceCase = EvidenceCase(
+            id = "intermediate_sample_quality_case",
+            researchQuestion = """
+                How satisfied are university students with online learning?
+            """.trimIndent(),
+            title = "Student Satisfaction with Online Learning",
+            authors = "M. Tan and R. Singh",
+            publication = "Higher Education Research Notes",
+            publishedYear = 2025,
+            excerpt = """
+                An online survey was shared with one business class. Eighty-five students 
+                voluntarily completed it. Most respondents reported being satisfied with 
+                online learning, and the authors discussed university students generally.
+            """.trimIndent(),
+            methodSummary = "Voluntary online survey",
+            sampleSummary = "85 volunteers from one business class",
+            sourceType = SourceType.PEER_REVIEWED_ARTICLE,
+            sourceNote = """
+                This is a fictional practice source created for educational use.
+            """.trimIndent(),
+            questions = listOf(
+                EvaluationQuestion(
+                    id = "intermediate_sample_quality_question_1",
+                    dimension = EvaluationDimension.EVIDENCE_STRENGTH,
+                    prompt = """
+                        What is the most important limitation of this sample?
+                    """.trimIndent(),
+                    options = listOf(
+                        AnswerOption(
+                            id = "narrow_volunteer_sample",
+                            text = """
+                                It is a voluntary sample from only one class and may not represent other students
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "too_many_students",
+                            text = """
+                                The study included too many participants to analyse properly
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "recent_data",
+                            text = """
+                                The data is unreliable because it was collected recently
+                            """.trimIndent()
+                        )
+                    ),
+                    correctOptionId = "narrow_volunteer_sample",
+                    explanation = """
+                        Students from one business class may differ from students in other 
+                        programmes or universities. Voluntary participation may also attract 
+                        students with particularly strong opinions.
+                    """.trimIndent(),
+                    learningTip = """
+                        Evaluate how participants were selected, who was excluded and whether 
+                        the sample represents the population in the research question.
+                    """.trimIndent()
+                )
+            )
+        )
+
+        return LearningModule(
+            id = "intermediate_sample_quality",
+            difficultyLevel = DifficultyLevel.INTERMEDIATE,
+            title = "Sample Quality",
+            description = """
+                Evaluate sample selection, representativeness and possible selection bias.
+            """.trimIndent(),
+            learningFocus = """
+                Decide whether the study participants adequately represent the target population.
+            """.trimIndent(),
+            evidenceCase = evidenceCase
+        )
+    }
+
+    private fun createGeneralisabilityModule(): LearningModule {
+        val evidenceCase = EvidenceCase(
+            id = "intermediate_generalisability_case",
+            researchQuestion = """
+                Does background music improve concentration among adults?
+            """.trimIndent(),
+            title = """
+                Background Music and Concentration in First-Year Students
+            """.trimIndent(),
+            authors = "E. Wong and K. Patel",
+            publication = "Cognitive Learning Journal",
+            publishedYear = 2025,
+            excerpt = """
+                Sixty first-year psychology students from one university completed a 
+                concentration task while listening to instrumental music. Their scores were 
+                slightly higher than scores recorded during a silent task.
+            """.trimIndent(),
+            methodSummary = "Within-participant laboratory task",
+            sampleSummary = """
+                60 first-year psychology students from one university
+            """.trimIndent(),
+            sourceType = SourceType.PEER_REVIEWED_ARTICLE,
+            sourceNote = """
+                This is a fictional practice source created for educational use.
+            """.trimIndent(),
+            questions = listOf(
+                EvaluationQuestion(
+                    id = "intermediate_generalisability_question_1",
+                    dimension = EvaluationDimension.CITATION_SUPPORT,
+                    prompt = """
+                        Which conclusion best respects the limits of this study?
+                    """.trimIndent(),
+                    options = listOf(
+                        AnswerOption(
+                            id = "limited_conclusion",
+                            text = """
+                                Instrumental music was associated with slightly better task performance in this group of students
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "all_adults",
+                            text = """
+                                Background music improves concentration for all adults
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "all_tasks",
+                            text = """
+                                Music improves performance on every type of academic task
+                            """.trimIndent()
+                        )
+                    ),
+                    correctOptionId = "limited_conclusion",
+                    explanation = """
+                        The participants came from one year level, one programme and one 
+                        university. The findings should not automatically be generalised to 
+                        all adults, institutions or concentration tasks.
+                    """.trimIndent(),
+                    learningTip = """
+                        Keep conclusions within the population, setting and task that were 
+                        actually examined.
+                    """.trimIndent()
+                )
+            )
+        )
+
+        return LearningModule(
+            id = "intermediate_generalisability",
+            difficultyLevel = DifficultyLevel.INTERMEDIATE,
+            title = "Generalisability",
+            description = """
+                Decide how far a study's findings can reasonably be applied.
+            """.trimIndent(),
+            learningFocus = """
+                Check whether conclusions extend beyond the study population, setting or conditions.
+            """.trimIndent(),
+            evidenceCase = evidenceCase
+        )
+    }
+
+    private fun createIntermediateEvidenceStrengthModule(): LearningModule {
+        val evidenceCase = EvidenceCase(
+            id = "intermediate_evidence_strength_case",
+            researchQuestion = """
+                Do structured study-skills programmes improve academic performance?
+            """.trimIndent(),
+            title = """
+                Study-Skills Programmes and Academic Performance: A Systematic Review
+            """.trimIndent(),
+            authors = "D. Roberts and S. Ibrahim",
+            publication = "Review of Educational Research",
+            publishedYear = 2026,
+            excerpt = """
+                The authors systematically searched four academic databases and reviewed 
+                18 controlled studies. They assessed study quality and found a small but 
+                generally consistent improvement in academic performance.
+            """.trimIndent(),
+            methodSummary = "Systematic review of controlled studies",
+            sampleSummary = """
+                18 controlled studies from multiple institutions
+            """.trimIndent(),
+            sourceType = SourceType.PEER_REVIEWED_ARTICLE,
+            sourceNote = """
+                This is a fictional practice source created for educational use.
+            """.trimIndent(),
+            questions = listOf(
+                EvaluationQuestion(
+                    id = "intermediate_evidence_strength_question_1",
+                    dimension = EvaluationDimension.EVIDENCE_STRENGTH,
+                    prompt = """
+                        Why may this source provide stronger evidence than one small survey?
+                    """.trimIndent(),
+                    options = listOf(
+                        AnswerOption(
+                            id = "multiple_studies",
+                            text = """
+                                It combines multiple controlled studies and evaluates their quality
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "long_title",
+                            text = """
+                                It has a longer title than a survey article
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "always_correct",
+                            text = """
+                                Systematic reviews are always correct and have no limitations
+                            """.trimIndent()
+                        )
+                    ),
+                    correctOptionId = "multiple_studies",
+                    explanation = """
+                        A systematic review can compare results across several studies and 
+                        assess their quality. It may therefore provide broader evidence, 
+                        although its conclusions still depend on the included studies.
+                    """.trimIndent(),
+                    learningTip = """
+                        Evidence strength depends on design quality, consistency, sample 
+                        coverage and the reliability of the underlying studies.
+                    """.trimIndent()
+                )
+            )
+        )
+
+        return LearningModule(
+            id = "intermediate_evidence_strength",
+            difficultyLevel = DifficultyLevel.INTERMEDIATE,
+            title = "Evidence Strength",
+            description = """
+                Compare evidence using study design, consistency and methodological quality.
+            """.trimIndent(),
+            learningFocus = """
+                Judge evidence by how it was produced, not simply by the confidence of its wording.
+            """.trimIndent(),
+            evidenceCase = evidenceCase
+        )
+    }
+
+    private fun createBiasAndConflictsModule(): LearningModule {
+        val evidenceCase = EvidenceCase(
+            id = "intermediate_bias_conflicts_case",
+            researchQuestion = """
+                Do energy drinks improve university students' concentration?
+            """.trimIndent(),
+            title = "Energy Drinks and Short-Term Concentration",
+            authors = "P. Adams and C. Liu",
+            publication = "Journal of Performance Nutrition",
+            publishedYear = 2026,
+            excerpt = """
+                A controlled study reported improved concentration scores after participants 
+                consumed an energy drink. The study was funded by the drink manufacturer, 
+                and one author worked as a paid consultant for the company.
+            """.trimIndent(),
+            methodSummary = "Controlled short-term performance study",
+            sampleSummary = "100 university student volunteers",
+            sourceType = SourceType.PEER_REVIEWED_ARTICLE,
+            sourceNote = """
+                This is a fictional practice source created for educational use.
+            """.trimIndent(),
+            questions = listOf(
+                EvaluationQuestion(
+                    id = "intermediate_bias_conflicts_question_1",
+                    dimension = EvaluationDimension.EVIDENCE_STRENGTH,
+                    prompt = """
+                        How should the funding and consultancy relationship affect the evaluation?
+                    """.trimIndent(),
+                    options = listOf(
+                        AnswerOption(
+                            id = "scrutinise_conflict",
+                            text = """
+                                Treat them as potential conflicts and examine the methods, reporting and disclosure carefully
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "automatic_rejection",
+                            text = """
+                                Automatically reject the study without examining its methods
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "no_relevance",
+                            text = """
+                                Ignore them because funding can never influence research
+                            """.trimIndent()
+                        )
+                    ),
+                    correctOptionId = "scrutinise_conflict",
+                    explanation = """
+                        Industry funding does not automatically make a study false, but it 
+                        creates a possible conflict of interest. Readers should examine the 
+                        study design, analysis, reporting and transparency more carefully.
+                    """.trimIndent(),
+                    learningTip = """
+                        Look for funding sources, author relationships, selective reporting 
+                        and whether conflicts are clearly disclosed.
+                    """.trimIndent()
+                )
+            )
+        )
+
+        return LearningModule(
+            id = "intermediate_bias_conflicts",
+            difficultyLevel = DifficultyLevel.INTERMEDIATE,
+            title = "Bias and Conflicts",
+            description = """
+                Identify possible bias, funding influence and conflicts of interest.
+            """.trimIndent(),
+            learningFocus = """
+                Consider how incentives and research decisions may influence reported findings.
             """.trimIndent(),
             evidenceCase = evidenceCase
         )
