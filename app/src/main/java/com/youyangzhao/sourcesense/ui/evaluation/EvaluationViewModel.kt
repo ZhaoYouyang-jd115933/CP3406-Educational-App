@@ -65,6 +65,7 @@ class EvaluationViewModel(
                 } else {
                     activeModuleId = learningModule.id
 
+                    // Start the module with a clean evaluation state
                     _uiState.value = EvaluationUiState(
                         isLoading = false,
                         evidenceCase =
@@ -89,11 +90,13 @@ class EvaluationViewModel(
         optionId: String
     ) {
         val currentState = _uiState.value
+
         val currentQuestion =
             currentState.currentQuestion ?: return
 
-        // Prevent changes while saving or after completion
+        // Lock the answer after it has been checked
         if (
+            currentState.isCurrentAnswerSubmitted ||
             currentState.result != null ||
             currentState.isSaving
         ) {
@@ -108,6 +111,27 @@ class EvaluationViewModel(
                                     currentQuestion.id to
                                             optionId
                                     ),
+                saveErrorMessage = null
+            )
+        }
+    }
+
+    fun submitCurrentAnswer() {
+        val currentState = _uiState.value
+
+        val currentQuestion =
+            currentState.currentQuestion ?: return
+
+        if (!currentState.canSubmitAnswer) {
+            return
+        }
+
+        // Mark the answer as submitted before showing feedback
+        _uiState.update { state ->
+            state.copy(
+                submittedQuestionIds =
+                    state.submittedQuestionIds +
+                            currentQuestion.id,
                 saveErrorMessage = null
             )
         }
@@ -128,7 +152,8 @@ class EvaluationViewModel(
         _uiState.update { state ->
             state.copy(
                 currentQuestionIndex =
-                    state.currentQuestionIndex + 1
+                    state.currentQuestionIndex + 1,
+                saveErrorMessage = null
             )
         }
     }
@@ -147,17 +172,36 @@ class EvaluationViewModel(
         _uiState.update { state ->
             state.copy(
                 currentQuestionIndex =
-                    state.currentQuestionIndex - 1
+                    state.currentQuestionIndex - 1,
+                saveErrorMessage = null
             )
         }
     }
 
     private fun completeEvaluation() {
         val currentState = _uiState.value
+
         val evidenceCase =
             currentState.evidenceCase ?: return
 
-        if (currentState.isSaving) {
+        if (
+            currentState.isSaving ||
+            currentState.result != null
+        ) {
+            return
+        }
+
+        // Save only after every question has been answered and checked
+        val allQuestionsSubmitted =
+            evidenceCase.questions.all { question ->
+                currentState.selectedAnswers[
+                    question.id
+                ] != null &&
+                        question.id in
+                        currentState.submittedQuestionIds
+            }
+
+        if (!allQuestionsSubmitted) {
             return
         }
 
@@ -207,8 +251,9 @@ class EvaluationViewModel(
 
         if (
             currentState.isLastQuestion &&
-            currentState.selectedOptionId != null &&
-            currentState.result == null
+            currentState.isCurrentAnswerSubmitted &&
+            currentState.result == null &&
+            !currentState.isSaving
         ) {
             completeEvaluation()
         }

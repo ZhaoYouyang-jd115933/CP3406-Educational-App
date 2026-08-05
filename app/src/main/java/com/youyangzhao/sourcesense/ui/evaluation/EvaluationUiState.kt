@@ -13,6 +13,7 @@ data class EvaluationUiState(
         DifficultyLevel.INTERMEDIATE,
     val currentQuestionIndex: Int = 0,
     val selectedAnswers: Map<String, String> = emptyMap(),
+    val submittedQuestionIds: Set<String> = emptySet(),
     val result: EvaluationResult? = null,
     val errorMessage: String? = null,
     val saveErrorMessage: String? = null
@@ -22,9 +23,12 @@ data class EvaluationUiState(
             ?.questions
             ?.getOrNull(currentQuestionIndex)
 
+    // Return the selected answer for the current question
     val selectedOptionId: String?
         get() {
-            val questionId = currentQuestion?.id ?: return null
+            val questionId =
+                currentQuestion?.id ?: return null
+
             return selectedAnswers[questionId]
         }
 
@@ -55,10 +59,46 @@ data class EvaluationUiState(
 
     val isLastQuestion: Boolean
         get() = totalQuestions > 0 &&
-                currentQuestionIndex == totalQuestions - 1
+                currentQuestionIndex ==
+                totalQuestions - 1
 
-    val canContinue: Boolean
+    // Check whether the current answer has been submitted
+    val isCurrentAnswerSubmitted: Boolean
+        get() {
+            val questionId =
+                currentQuestion?.id ?: return false
+
+            return questionId in submittedQuestionIds
+        }
+
+    // Return correctness only after the answer is submitted
+    val isCurrentAnswerCorrect: Boolean?
+        get() {
+            if (!isCurrentAnswerSubmitted) {
+                return null
+            }
+
+            val question =
+                currentQuestion ?: return null
+
+            val selectedOption =
+                selectedOptionId ?: return null
+
+            return selectedOption ==
+                    question.correctOptionId
+        }
+
+    // Enable answer checking after an option is selected
+    val canSubmitAnswer: Boolean
         get() = selectedOptionId != null &&
+                !isCurrentAnswerSubmitted &&
+                !isLoading &&
+                !isSaving &&
+                result == null
+
+    // Allow navigation only after feedback has been shown
+    val canContinue: Boolean
+        get() = isCurrentAnswerSubmitted &&
                 !isLoading &&
                 !isSaving &&
                 result == null
