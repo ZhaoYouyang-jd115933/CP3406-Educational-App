@@ -90,6 +90,11 @@ dependencies {
         "androidx.room:room-compiler:2.8.4"
     )
 
+    // Store user settings and accessibility preferences
+    implementation(
+        "androidx.datastore:datastore-preferences:1.2.1"
+    )
+
     testImplementation(libs.junit)
 
     // Support deterministic coroutine unit tests
