@@ -113,6 +113,9 @@ dependencies {
     // Log network requests during development
     implementation(libs.okhttp.logging)
 
+    // Open readable sources in an in-app browser
+    implementation(libs.androidx.browser)
+
     testImplementation(libs.junit)
 
     // Support deterministic coroutine unit tests

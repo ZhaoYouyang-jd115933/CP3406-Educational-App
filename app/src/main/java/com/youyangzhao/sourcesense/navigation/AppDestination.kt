@@ -18,6 +18,18 @@ sealed class AppDestination(
         icon = Icons.Default.Home
     )
 
+    object Explore : AppDestination(
+        route = "explore",
+        label = "Explore",
+        icon = Icons.Default.Search
+    )
+
+    object SourceDetails : AppDestination(
+        route = "source_details",
+        label = "Source Details",
+        icon = Icons.Default.Search
+    )
+
     object Evaluation : AppDestination(
         route = "evaluation",
         label = "Evaluate",
@@ -46,7 +58,7 @@ sealed class AppDestination(
         // Define destinations shown in the bottom navigation
         val topLevelDestinations = listOf(
             Landing,
-            Evaluation,
+            Explore,
             Statistics,
             Settings
         )
