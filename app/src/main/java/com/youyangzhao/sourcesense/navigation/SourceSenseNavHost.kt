@@ -1,5 +1,9 @@
 package com.youyangzhao.sourcesense.navigation
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -38,7 +42,8 @@ import com.youyangzhao.sourcesense.ui.statistics.StatisticsViewModelFactory
 
 @Composable
 fun SourceSenseNavHost(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    reduceAnimations: Boolean = false
 ) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -128,7 +133,7 @@ fun SourceSenseNavHost(
                             selected = currentRoute == destination.route,
                             onClick = {
                                 navController.navigate(destination.route) {
-                                    // Preserve state across main navigation screens
+                                    // Preserve main screen state
                                     popUpTo(
                                         navController.graph
                                             .findStartDestination()
@@ -148,7 +153,9 @@ fun SourceSenseNavHost(
                                 )
                             },
                             label = {
-                                Text(text = destination.label)
+                                Text(
+                                    text = destination.label
+                                )
                             }
                         )
                     }
@@ -159,7 +166,35 @@ fun SourceSenseNavHost(
         NavHost(
             navController = navController,
             startDestination = AppDestination.Landing.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(innerPadding),
+            enterTransition = {
+                if (reduceAnimations) {
+                    EnterTransition.None
+                } else {
+                    fadeIn()
+                }
+            },
+            exitTransition = {
+                if (reduceAnimations) {
+                    ExitTransition.None
+                } else {
+                    fadeOut()
+                }
+            },
+            popEnterTransition = {
+                if (reduceAnimations) {
+                    EnterTransition.None
+                } else {
+                    fadeIn()
+                }
+            },
+            popExitTransition = {
+                if (reduceAnimations) {
+                    ExitTransition.None
+                } else {
+                    fadeOut()
+                }
+            }
         ) {
             composable(AppDestination.Landing.route) {
                 LandingScreen(
@@ -182,7 +217,7 @@ fun SourceSenseNavHost(
                         navController.navigate(
                             AppDestination.Result.route
                         ) {
-                            // Remove the completed activity from the back stack
+                            // Remove the completed evaluation
                             popUpTo(AppDestination.Evaluation.route) {
                                 inclusive = true
                             }

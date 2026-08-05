@@ -9,9 +9,10 @@ import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youyangzhao.sourcesense.data.local.preferences.userSettingsDataStore
 import com.youyangzhao.sourcesense.data.repository.DataStoreUserSettingsRepository
+import com.youyangzhao.sourcesense.domain.model.DifficultyLevel
+import com.youyangzhao.sourcesense.domain.model.UserSettings
 import com.youyangzhao.sourcesense.navigation.SourceSenseNavHost
 import com.youyangzhao.sourcesense.ui.theme.SourceSenseTheme
-import kotlinx.coroutines.flow.map
 
 class MainActivity : ComponentActivity() {
 
@@ -26,25 +27,28 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
-            val useLargerTextFlow = remember(
+            val userSettingsFlow = remember(
                 userSettingsRepository
             ) {
-                userSettingsRepository
-                    .observeUserSettings()
-                    .map { userSettings ->
-                        userSettings.useLargerText
-                    }
+                userSettingsRepository.observeUserSettings()
             }
 
-            val useLargerText by useLargerTextFlow
+            val userSettings by userSettingsFlow
                 .collectAsStateWithLifecycle(
-                    initialValue = false
+                    initialValue = UserSettings(
+                        difficultyLevel = DifficultyLevel.INTERMEDIATE,
+                        useLargerText = false,
+                        reduceAnimations = false,
+                        soundFeedbackEnabled = true
+                    )
                 )
 
             SourceSenseTheme(
-                useLargerText = useLargerText
+                useLargerText = userSettings.useLargerText
             ) {
-                SourceSenseNavHost()
+                SourceSenseNavHost(
+                    reduceAnimations = userSettings.reduceAnimations
+                )
             }
         }
     }
