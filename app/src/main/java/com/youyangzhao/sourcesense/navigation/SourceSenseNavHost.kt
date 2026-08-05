@@ -19,6 +19,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.youyangzhao.sourcesense.data.local.database.SourceSenseDatabase
+import com.youyangzhao.sourcesense.data.local.preferences.userSettingsDataStore
+import com.youyangzhao.sourcesense.data.repository.DataStoreUserSettingsRepository
 import com.youyangzhao.sourcesense.data.repository.LocalEvidenceRepository
 import com.youyangzhao.sourcesense.data.repository.RoomEvaluationHistoryRepository
 import com.youyangzhao.sourcesense.data.repository.RoomStatisticsRepository
@@ -27,7 +29,9 @@ import com.youyangzhao.sourcesense.ui.evaluation.EvaluationViewModel
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationViewModelFactory
 import com.youyangzhao.sourcesense.ui.landing.LandingScreen
 import com.youyangzhao.sourcesense.ui.result.ResultRoute
-import com.youyangzhao.sourcesense.ui.settings.SettingsScreen
+import com.youyangzhao.sourcesense.ui.settings.SettingsRoute
+import com.youyangzhao.sourcesense.ui.settings.SettingsViewModel
+import com.youyangzhao.sourcesense.ui.settings.SettingsViewModelFactory
 import com.youyangzhao.sourcesense.ui.statistics.StatisticsRoute
 import com.youyangzhao.sourcesense.ui.statistics.StatisticsViewModel
 import com.youyangzhao.sourcesense.ui.statistics.StatisticsViewModelFactory
@@ -69,6 +73,12 @@ fun SourceSenseNavHost(
         )
     }
 
+    val userSettingsRepository = remember(context) {
+        DataStoreUserSettingsRepository(
+            dataStore = context.userSettingsDataStore
+        )
+    }
+
     val evaluationFactory = remember(
         evidenceRepository,
         evaluationHistoryRepository
@@ -88,12 +98,24 @@ fun SourceSenseNavHost(
         )
     }
 
+    val settingsFactory = remember(
+        userSettingsRepository
+    ) {
+        SettingsViewModelFactory(
+            userSettingsRepository = userSettingsRepository
+        )
+    }
+
     val evaluationViewModel: EvaluationViewModel = viewModel(
         factory = evaluationFactory
     )
 
     val statisticsViewModel: StatisticsViewModel = viewModel(
         factory = statisticsFactory
+    )
+
+    val settingsViewModel: SettingsViewModel = viewModel(
+        factory = settingsFactory
     )
 
     Scaffold(
@@ -212,7 +234,9 @@ fun SourceSenseNavHost(
             }
 
             composable(AppDestination.Settings.route) {
-                SettingsScreen()
+                SettingsRoute(
+                    viewModel = settingsViewModel
+                )
             }
         }
     }
