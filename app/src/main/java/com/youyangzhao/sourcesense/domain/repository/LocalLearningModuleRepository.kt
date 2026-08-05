@@ -21,7 +21,12 @@ class LocalLearningModuleRepository : LearningModuleRepository {
         createSampleQualityModule(),
         createGeneralisabilityModule(),
         createIntermediateEvidenceStrengthModule(),
-        createBiasAndConflictsModule()
+        createBiasAndConflictsModule(),
+        createConfoundingVariablesModule(),
+        createStatisticalInterpretationModule(),
+        createConflictingSourcesModule(),
+        createSystematicReviewQualityModule(),
+        createResearchEthicsModule()
     )
 
     override suspend fun getModulesForDifficulty(
@@ -53,8 +58,8 @@ class LocalLearningModuleRepository : LearningModuleRepository {
             publication = "Student Health Review",
             publishedYear = 2025,
             excerpt = """
-                A survey of 250 university students examined weekly exercise 
-                frequency and self-reported sleep quality. Students who exercised 
+                A survey of 250 university students examined weekly exercise
+                frequency and self-reported sleep quality. Students who exercised
                 more frequently generally reported better sleep.
             """.trimIndent(),
             methodSummary = "Cross-sectional student survey",
@@ -92,11 +97,11 @@ class LocalLearningModuleRepository : LearningModuleRepository {
                     ),
                     correctOptionId = "directly_relevant",
                     explanation = """
-                        The population and main variables match the research question. 
+                        The population and main variables match the research question.
                         However, relevance does not mean that the survey proves causation.
                     """.trimIndent(),
                     learningTip = """
-                        Compare the source population, variables and context with the 
+                        Compare the source population, variables and context with the
                         research question.
                     """.trimIndent()
                 )
@@ -128,7 +133,7 @@ class LocalLearningModuleRepository : LearningModuleRepository {
             publication = "University News Online",
             publishedYear = 2026,
             excerpt = """
-                A university news website summarised advice from a campus counsellor 
+                A university news website summarised advice from a campus counsellor
                 about sleep, exercise and study planning during examinations.
             """.trimIndent(),
             methodSummary = "News report containing professional advice",
@@ -162,7 +167,7 @@ class LocalLearningModuleRepository : LearningModuleRepository {
                     ),
                     correctOptionId = "news",
                     explanation = """
-                        The information was published by a university news website. 
+                        The information was published by a university news website.
                         It is not presented as an original peer-reviewed research study.
                     """.trimIndent(),
                     learningTip = """
@@ -197,8 +202,8 @@ class LocalLearningModuleRepository : LearningModuleRepository {
             publication = "Personal Study Blog",
             publishedYear = 2026,
             excerpt = """
-                The writer claims that a homemade herbal drink doubled their 
-                concentration. No qualifications, research references, measurements 
+                The writer claims that a homemade herbal drink doubled their
+                concentration. No qualifications, research references, measurements
                 or information about ingredients are provided.
             """.trimIndent(),
             methodSummary = "Personal experience",
@@ -232,7 +237,7 @@ class LocalLearningModuleRepository : LearningModuleRepository {
                     ),
                     correctOptionId = "missing_evidence",
                     explanation = """
-                        The claim relies on one personal experience and provides no 
+                        The claim relies on one personal experience and provides no
                         transparent evidence that can be independently checked.
                     """.trimIndent(),
                     learningTip = """
@@ -267,8 +272,8 @@ class LocalLearningModuleRepository : LearningModuleRepository {
             publication = "Journal of Student Behaviour",
             publishedYear = 2025,
             excerpt = """
-                Students reporting more daily social media use also reported higher 
-                examination anxiety. Both variables were measured through a survey 
+                Students reporting more daily social media use also reported higher
+                examination anxiety. Both variables were measured through a survey
                 completed at one point in time.
             """.trimIndent(),
             methodSummary = "Cross-sectional survey",
@@ -306,7 +311,7 @@ class LocalLearningModuleRepository : LearningModuleRepository {
                     ),
                     correctOptionId = "association",
                     explanation = """
-                        The survey found that the variables occurred together, but it 
+                        The survey found that the variables occurred together, but it
                         cannot establish which variable came first or prove causation.
                     """.trimIndent(),
                     learningTip = """
@@ -341,8 +346,8 @@ class LocalLearningModuleRepository : LearningModuleRepository {
             publication = "Student Wellbeing Quarterly",
             publishedYear = 2025,
             excerpt = """
-                In a survey of 310 students, heavier late-night smartphone use 
-                was associated with poorer self-reported sleep quality. The authors 
+                In a survey of 310 students, heavier late-night smartphone use
+                was associated with poorer self-reported sleep quality. The authors
                 stated that the design could not prove causation.
             """.trimIndent(),
             methodSummary = "Cross-sectional self-report survey",
@@ -380,7 +385,7 @@ class LocalLearningModuleRepository : LearningModuleRepository {
                     ),
                     correctOptionId = "supported",
                     explanation = """
-                        The accurate statement preserves the sample context and reports 
+                        The accurate statement preserves the sample context and reports
                         an association rather than an unsupported causal or medical claim.
                     """.trimIndent(),
                     learningTip = """
@@ -415,8 +420,8 @@ class LocalLearningModuleRepository : LearningModuleRepository {
             publication = "Journal of Educational Technology",
             publishedYear = 2026,
             excerpt = """
-                Researchers randomly assigned 120 university students to either use a 
-                study-planning app for six weeks or continue with their normal study 
+                Researchers randomly assigned 120 university students to either use a
+                study-planning app for six weeks or continue with their normal study
                 practices. Both groups completed the same examination at the end.
             """.trimIndent(),
             methodSummary = "Randomised controlled experiment",
@@ -443,25 +448,21 @@ class LocalLearningModuleRepository : LearningModuleRepository {
                         ),
                         AnswerOption(
                             id = "recent_publication",
-                            text = """
-                                The study was published recently
-                            """.trimIndent()
+                            text = "The study was published recently"
                         ),
                         AnswerOption(
                             id = "academic_title",
-                            text = """
-                                The article has an academic-sounding title
-                            """.trimIndent()
+                            text = "The article has an academic-sounding title"
                         )
                     ),
                     correctOptionId = "random_assignment",
                     explanation = """
-                        Random assignment and a comparison group help reduce systematic 
-                        differences between the groups. This makes a causal interpretation 
+                        Random assignment and a comparison group help reduce systematic
+                        differences between the groups. This makes a causal interpretation
                         more reasonable than it would be in an observational survey.
                     """.trimIndent(),
                     learningTip = """
-                        Match the research method to the claim. Causal questions usually 
+                        Match the research method to the claim. Causal questions usually
                         require stronger designs than descriptive or correlational questions.
                     """.trimIndent()
                 )
@@ -493,8 +494,8 @@ class LocalLearningModuleRepository : LearningModuleRepository {
             publication = "Higher Education Research Notes",
             publishedYear = 2025,
             excerpt = """
-                An online survey was shared with one business class. Eighty-five students 
-                voluntarily completed it. Most respondents reported being satisfied with 
+                An online survey was shared with one business class. Eighty-five students
+                voluntarily completed it. Most respondents reported being satisfied with
                 online learning, and the authors discussed university students generally.
             """.trimIndent(),
             methodSummary = "Voluntary online survey",
@@ -532,12 +533,12 @@ class LocalLearningModuleRepository : LearningModuleRepository {
                     ),
                     correctOptionId = "narrow_volunteer_sample",
                     explanation = """
-                        Students from one business class may differ from students in other 
-                        programmes or universities. Voluntary participation may also attract 
+                        Students from one business class may differ from students in other
+                        programmes or universities. Voluntary participation may also attract
                         students with particularly strong opinions.
                     """.trimIndent(),
                     learningTip = """
-                        Evaluate how participants were selected, who was excluded and whether 
+                        Evaluate how participants were selected, who was excluded and whether
                         the sample represents the population in the research question.
                     """.trimIndent()
                 )
@@ -571,8 +572,8 @@ class LocalLearningModuleRepository : LearningModuleRepository {
             publication = "Cognitive Learning Journal",
             publishedYear = 2025,
             excerpt = """
-                Sixty first-year psychology students from one university completed a 
-                concentration task while listening to instrumental music. Their scores were 
+                Sixty first-year psychology students from one university completed a
+                concentration task while listening to instrumental music. Their scores were
                 slightly higher than scores recorded during a silent task.
             """.trimIndent(),
             methodSummary = "Within-participant laboratory task",
@@ -612,12 +613,12 @@ class LocalLearningModuleRepository : LearningModuleRepository {
                     ),
                     correctOptionId = "limited_conclusion",
                     explanation = """
-                        The participants came from one year level, one programme and one 
-                        university. The findings should not automatically be generalised to 
+                        The participants came from one year level, one programme and one
+                        university. The findings should not automatically be generalised to
                         all adults, institutions or concentration tasks.
                     """.trimIndent(),
                     learningTip = """
-                        Keep conclusions within the population, setting and task that were 
+                        Keep conclusions within the population, setting and task that were
                         actually examined.
                     """.trimIndent()
                 )
@@ -651,8 +652,8 @@ class LocalLearningModuleRepository : LearningModuleRepository {
             publication = "Review of Educational Research",
             publishedYear = 2026,
             excerpt = """
-                The authors systematically searched four academic databases and reviewed 
-                18 controlled studies. They assessed study quality and found a small but 
+                The authors systematically searched four academic databases and reviewed
+                18 controlled studies. They assessed study quality and found a small but
                 generally consistent improvement in academic performance.
             """.trimIndent(),
             methodSummary = "Systematic review of controlled studies",
@@ -692,12 +693,12 @@ class LocalLearningModuleRepository : LearningModuleRepository {
                     ),
                     correctOptionId = "multiple_studies",
                     explanation = """
-                        A systematic review can compare results across several studies and 
-                        assess their quality. It may therefore provide broader evidence, 
+                        A systematic review can compare results across several studies and
+                        assess their quality. It may therefore provide broader evidence,
                         although its conclusions still depend on the included studies.
                     """.trimIndent(),
                     learningTip = """
-                        Evidence strength depends on design quality, consistency, sample 
+                        Evidence strength depends on design quality, consistency, sample
                         coverage and the reliability of the underlying studies.
                     """.trimIndent()
                 )
@@ -729,8 +730,8 @@ class LocalLearningModuleRepository : LearningModuleRepository {
             publication = "Journal of Performance Nutrition",
             publishedYear = 2026,
             excerpt = """
-                A controlled study reported improved concentration scores after participants 
-                consumed an energy drink. The study was funded by the drink manufacturer, 
+                A controlled study reported improved concentration scores after participants
+                consumed an energy drink. The study was funded by the drink manufacturer,
                 and one author worked as a paid consultant for the company.
             """.trimIndent(),
             methodSummary = "Controlled short-term performance study",
@@ -768,12 +769,12 @@ class LocalLearningModuleRepository : LearningModuleRepository {
                     ),
                     correctOptionId = "scrutinise_conflict",
                     explanation = """
-                        Industry funding does not automatically make a study false, but it 
-                        creates a possible conflict of interest. Readers should examine the 
+                        Industry funding does not automatically make a study false, but it
+                        creates a possible conflict of interest. Readers should examine the
                         study design, analysis, reporting and transparency more carefully.
                     """.trimIndent(),
                     learningTip = """
-                        Look for funding sources, author relationships, selective reporting 
+                        Look for funding sources, author relationships, selective reporting
                         and whether conflicts are clearly disclosed.
                     """.trimIndent()
                 )
@@ -789,6 +790,406 @@ class LocalLearningModuleRepository : LearningModuleRepository {
             """.trimIndent(),
             learningFocus = """
                 Consider how incentives and research decisions may influence reported findings.
+            """.trimIndent(),
+            evidenceCase = evidenceCase
+        )
+    }
+
+    private fun createConfoundingVariablesModule(): LearningModule {
+        val evidenceCase = EvidenceCase(
+            id = "advanced_confounding_variables_case",
+            researchQuestion = """
+                Does attending optional tutorials cause higher examination scores?
+            """.trimIndent(),
+            title = """
+                Tutorial Attendance and Examination Performance
+            """.trimIndent(),
+            authors = "K. Morgan and H. Zhang",
+            publication = "Journal of University Learning",
+            publishedYear = 2026,
+            excerpt = """
+                Researchers compared 420 students who attended optional tutorials with
+                students who did not attend. Tutorial attendees achieved higher average
+                examination scores. However, they also reported more weekly study hours
+                and higher previous-semester grades.
+            """.trimIndent(),
+            methodSummary = "Observational comparison using student records and survey data",
+            sampleSummary = "420 university students who chose whether to attend tutorials",
+            sourceType = SourceType.PEER_REVIEWED_ARTICLE,
+            sourceNote = """
+                This is a fictional practice source created for educational use.
+            """.trimIndent(),
+            questions = listOf(
+                EvaluationQuestion(
+                    id = "advanced_confounding_variables_question_1",
+                    dimension = EvaluationDimension.CAUSATION,
+                    prompt = """
+                        Why can this study not confidently conclude that tutorial attendance caused the higher scores?
+                    """.trimIndent(),
+                    options = listOf(
+                        AnswerOption(
+                            id = "confounding_factors",
+                            text = """
+                                Tutorial attendees may already have stronger study habits and previous academic performance
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "large_sample",
+                            text = """
+                                The sample included too many students to support a conclusion
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "exam_measurement",
+                            text = """
+                                Examination scores cannot be used as an academic outcome
+                            """.trimIndent()
+                        )
+                    ),
+                    correctOptionId = "confounding_factors",
+                    explanation = """
+                        Study hours and previous grades are possible confounding variables.
+                        They may influence both tutorial attendance and examination results,
+                        creating an apparent effect even if tutorials are not the sole cause.
+                    """.trimIndent(),
+                    learningTip = """
+                        Look for variables that may influence both the proposed cause and
+                        the measured outcome.
+                    """.trimIndent()
+                )
+            )
+        )
+
+        return LearningModule(
+            id = "advanced_confounding_variables",
+            difficultyLevel = DifficultyLevel.ADVANCED,
+            title = "Confounding Variables",
+            description = """
+                Identify third variables that may create a misleading causal relationship.
+            """.trimIndent(),
+            learningFocus = """
+                Separate the effect of an intervention from pre-existing differences between groups.
+            """.trimIndent(),
+            evidenceCase = evidenceCase
+        )
+    }
+
+    private fun createStatisticalInterpretationModule(): LearningModule {
+        val evidenceCase = EvidenceCase(
+            id = "advanced_statistical_interpretation_case",
+            researchQuestion = """
+                Does a study reminder system meaningfully improve student grades?
+            """.trimIndent(),
+            title = """
+                Automated Study Reminders and Academic Results
+            """.trimIndent(),
+            authors = "S. Ali and M. Turner",
+            publication = "Educational Data Science Review",
+            publishedYear = 2026,
+            excerpt = """
+                A study involving 4,800 students found that users of an automated
+                reminder system achieved examination scores that were 0.4 percentage
+                points higher on average. The difference was statistically significant,
+                with p less than 0.01.
+            """.trimIndent(),
+            methodSummary = "Large controlled comparison",
+            sampleSummary = "4,800 university students",
+            sourceType = SourceType.PEER_REVIEWED_ARTICLE,
+            sourceNote = """
+                This is a fictional practice source created for educational use.
+            """.trimIndent(),
+            questions = listOf(
+                EvaluationQuestion(
+                    id = "advanced_statistical_interpretation_question_1",
+                    dimension = EvaluationDimension.EVIDENCE_STRENGTH,
+                    prompt = """
+                        What is the most accurate interpretation of this result?
+                    """.trimIndent(),
+                    options = listOf(
+                        AnswerOption(
+                            id = "small_effect",
+                            text = """
+                                The difference is unlikely to be due to random sampling alone, but its practical effect is very small
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "major_improvement",
+                            text = """
+                                Statistical significance proves that the reminder system produced a major educational improvement
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "no_relationship",
+                            text = """
+                                A small percentage difference means that no relationship exists
+                            """.trimIndent()
+                        )
+                    ),
+                    correctOptionId = "small_effect",
+                    explanation = """
+                        Statistical significance concerns whether an observed difference is
+                        unlikely under a specified statistical model. It does not show that
+                        the effect is large, important or educationally meaningful.
+                    """.trimIndent(),
+                    learningTip = """
+                        Interpret statistical significance together with effect size,
+                        confidence, study quality and practical importance.
+                    """.trimIndent()
+                )
+            )
+        )
+
+        return LearningModule(
+            id = "advanced_statistical_interpretation",
+            difficultyLevel = DifficultyLevel.ADVANCED,
+            title = "Statistical Interpretation",
+            description = """
+                Distinguish statistical significance from effect size and practical importance.
+            """.trimIndent(),
+            learningFocus = """
+                Avoid treating a small statistically significant result as automatically meaningful.
+            """.trimIndent(),
+            evidenceCase = evidenceCase
+        )
+    }
+
+    private fun createConflictingSourcesModule(): LearningModule {
+        val evidenceCase = EvidenceCase(
+            id = "advanced_conflicting_sources_case",
+            researchQuestion = """
+                Does laptop note-taking reduce university students' learning outcomes?
+            """.trimIndent(),
+            title = """
+                Comparing Conflicting Studies of Digital Note-Taking
+            """.trimIndent(),
+            authors = "F. Wilson and Y. Park",
+            publication = "Evidence in Higher Education",
+            publishedYear = 2026,
+            excerpt = """
+                Study A surveyed 90 volunteers after one lecture and reported that
+                students preferred laptops. Study B randomly assigned 360 students
+                to laptop or handwritten note-taking across six lectures and found
+                slightly better delayed test performance in the handwritten group.
+            """.trimIndent(),
+            methodSummary = """
+                Comparison of a small voluntary survey and a larger randomised study
+            """.trimIndent(),
+            sampleSummary = """
+                Study A: 90 volunteers; Study B: 360 randomly assigned students
+            """.trimIndent(),
+            sourceType = SourceType.PEER_REVIEWED_ARTICLE,
+            sourceNote = """
+                This is a fictional practice source created for educational use.
+            """.trimIndent(),
+            questions = listOf(
+                EvaluationQuestion(
+                    id = "advanced_conflicting_sources_question_1",
+                    dimension = EvaluationDimension.EVIDENCE_STRENGTH,
+                    prompt = """
+                        Which approach is most appropriate when evaluating these apparently conflicting findings?
+                    """.trimIndent(),
+                    options = listOf(
+                        AnswerOption(
+                            id = "compare_methods",
+                            text = """
+                                Compare the questions, outcomes, samples and study designs before deciding whether the findings truly conflict
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "choose_preference",
+                            text = """
+                                Accept Study A because student preference is the most important evidence of learning
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "newest_source",
+                            text = """
+                                Accept whichever study was published more recently without examining its methods
+                            """.trimIndent()
+                        )
+                    ),
+                    correctOptionId = "compare_methods",
+                    explanation = """
+                        The studies measured different outcomes. Study A examined preference,
+                        while Study B measured delayed performance. Their methods and samples
+                        also differed, so the findings are not directly interchangeable.
+                    """.trimIndent(),
+                    learningTip = """
+                        When sources disagree, compare what they measured, who they studied,
+                        how the evidence was produced and how precisely the conclusions were stated.
+                    """.trimIndent()
+                )
+            )
+        )
+
+        return LearningModule(
+            id = "advanced_conflicting_sources",
+            difficultyLevel = DifficultyLevel.ADVANCED,
+            title = "Comparing Conflicting Sources",
+            description = """
+                Evaluate why credible-looking studies may reach different conclusions.
+            """.trimIndent(),
+            learningFocus = """
+                Compare research questions, outcomes, samples and methods instead of choosing a source by appearance.
+            """.trimIndent(),
+            evidenceCase = evidenceCase
+        )
+    }
+
+    private fun createSystematicReviewQualityModule(): LearningModule {
+        val evidenceCase = EvidenceCase(
+            id = "advanced_systematic_review_quality_case",
+            researchQuestion = """
+                Do mindfulness programmes reduce stress among university students?
+            """.trimIndent(),
+            title = """
+                Mindfulness and Student Stress: A Review of Published Evidence
+            """.trimIndent(),
+            authors = "N. Evans and J. Rahman",
+            publication = "Student Mental Health Research",
+            publishedYear = 2026,
+            excerpt = """
+                The review included 12 studies found through one academic database.
+                The authors did not publish their search terms, inclusion criteria or
+                assessment of study quality. Studies reporting no benefit were discussed
+                briefly, while positive studies received more detailed attention.
+            """.trimIndent(),
+            methodSummary = "Narrative review described as a systematic review",
+            sampleSummary = "12 published studies identified through one database",
+            sourceType = SourceType.PEER_REVIEWED_ARTICLE,
+            sourceNote = """
+                This is a fictional practice source created for educational use.
+            """.trimIndent(),
+            questions = listOf(
+                EvaluationQuestion(
+                    id = "advanced_systematic_review_quality_question_1",
+                    dimension = EvaluationDimension.EVIDENCE_STRENGTH,
+                    prompt = """
+                        Which issue most seriously weakens confidence in this review?
+                    """.trimIndent(),
+                    options = listOf(
+                        AnswerOption(
+                            id = "untransparent_process",
+                            text = """
+                                The search, selection and quality-assessment process is not transparent or reproducible
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "study_count",
+                            text = """
+                                A review must always contain more than 100 studies to be valid
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "topic_popularity",
+                            text = """
+                                Mindfulness is a popular topic, so research about it cannot be evaluated
+                            """.trimIndent()
+                        )
+                    ),
+                    correctOptionId = "untransparent_process",
+                    explanation = """
+                        Without clear search terms, inclusion rules and quality assessment,
+                        readers cannot determine whether important studies were missed or
+                        whether weak and strong evidence were treated appropriately.
+                    """.trimIndent(),
+                    learningTip = """
+                        A strong systematic review should report a reproducible search,
+                        explicit eligibility criteria and a structured assessment of study quality.
+                    """.trimIndent()
+                )
+            )
+        )
+
+        return LearningModule(
+            id = "advanced_systematic_review_quality",
+            difficultyLevel = DifficultyLevel.ADVANCED,
+            title = "Systematic Review Quality",
+            description = """
+                Evaluate the transparency and reliability of evidence-review methods.
+            """.trimIndent(),
+            learningFocus = """
+                Check database coverage, search reporting, inclusion criteria and study-quality assessment.
+            """.trimIndent(),
+            evidenceCase = evidenceCase
+        )
+    }
+
+    private fun createResearchEthicsModule(): LearningModule {
+        val evidenceCase = EvidenceCase(
+            id = "advanced_research_ethics_case",
+            researchQuestion = """
+                How do financial difficulties affect university students' mental wellbeing?
+            """.trimIndent(),
+            title = """
+                Financial Stress and Student Wellbeing
+            """.trimIndent(),
+            authors = "B. Carter and L. Hassan",
+            publication = "Journal of Student Support",
+            publishedYear = 2026,
+            excerpt = """
+                Researchers collected identifiable financial and mental-health information
+                through an online survey. Participants were not clearly told how long their
+                data would be stored. The research team shared the raw dataset with another
+                organisation without describing a separate consent process.
+            """.trimIndent(),
+            methodSummary = "Online survey collecting sensitive identifiable information",
+            sampleSummary = "650 university students",
+            sourceType = SourceType.PEER_REVIEWED_ARTICLE,
+            sourceNote = """
+                This is a fictional practice source created for educational use.
+            """.trimIndent(),
+            questions = listOf(
+                EvaluationQuestion(
+                    id = "advanced_research_ethics_question_1",
+                    dimension = EvaluationDimension.EVIDENCE_STRENGTH,
+                    prompt = """
+                        What is the most important ethical concern in this case?
+                    """.trimIndent(),
+                    options = listOf(
+                        AnswerOption(
+                            id = "consent_privacy",
+                            text = """
+                                Participants may not have given sufficiently informed consent for storing and sharing sensitive identifiable data
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "large_sample",
+                            text = """
+                                The study included too many participants for ethical approval
+                            """.trimIndent()
+                        ),
+                        AnswerOption(
+                            id = "online_method",
+                            text = """
+                                Online surveys are always unethical regardless of their safeguards
+                            """.trimIndent()
+                        )
+                    ),
+                    correctOptionId = "consent_privacy",
+                    explanation = """
+                        Sensitive information requires clear consent, strong privacy
+                        protections and transparent limits on storage and sharing.
+                        Data collection methods are not automatically unethical, but their
+                        safeguards must match the risks faced by participants.
+                    """.trimIndent(),
+                    learningTip = """
+                        Examine informed consent, data minimisation, confidentiality,
+                        participant risk and transparency about secondary data use.
+                    """.trimIndent()
+                )
+            )
+        )
+
+        return LearningModule(
+            id = "advanced_research_ethics",
+            difficultyLevel = DifficultyLevel.ADVANCED,
+            title = "Research Ethics and Transparency",
+            description = """
+                Evaluate consent, privacy, participant risk and transparent data practices.
+            """.trimIndent(),
+            learningFocus = """
+                Consider whether research protects participants and clearly explains how sensitive data will be used.
             """.trimIndent(),
             evidenceCase = evidenceCase
         )
