@@ -58,17 +58,13 @@ class RealSourceReviewScreenTest {
 
         composeTestRule
             .onNode(
-                hasText(
-                    "No Source Selected"
-                )
+                hasText("No Source Selected")
             )
             .assertExists()
 
         composeTestRule
             .onNode(
-                hasText(
-                    "Back to Explore"
-                )
+                hasText("Back to Explore")
             )
             .assertIsEnabled()
             .performClick()
@@ -86,8 +82,7 @@ class RealSourceReviewScreenTest {
         var openedSource:
                 AcademicSource? = null
 
-        val source =
-            createSource()
+        val source = createSource()
 
         composeTestRule.setContent {
             SourceSenseTheme(
@@ -122,17 +117,13 @@ class RealSourceReviewScreenTest {
 
         composeTestRule
             .onNode(
-                hasText(
-                    "Review a Real Source"
-                )
+                hasText("Review a Real Source")
             )
             .assertExists()
 
         composeTestRule
             .onNode(
-                hasText(
-                    source.title
-                )
+                hasText(source.title)
             )
             .assertExists()
 
@@ -141,19 +132,15 @@ class RealSourceReviewScreenTest {
                 hasScrollAction()
             )
 
-        // Scroll until the reading action is composed
+        // Verify that the source can still be opened
         scrollableColumn
             .performScrollToNode(
-                hasText(
-                    "Read Source"
-                )
+                hasText("Read Source")
             )
 
         composeTestRule
             .onNode(
-                hasText(
-                    "Read Source"
-                )
+                hasText("Read Source")
             )
             .assertIsEnabled()
             .performClick()
@@ -165,54 +152,15 @@ class RealSourceReviewScreenTest {
             )
         }
 
-        // Confirm that the metadata limitation is visible
-        scrollableColumn
-            .performScrollToNode(
-                hasText(
-                    "Important Evidence Limit"
-                )
-            )
-
-        composeTestRule
-            .onNode(
-                hasText(
-                    "Important Evidence Limit"
-                )
-            )
-            .assertExists()
-
-        scrollableColumn
-            .performScrollToNode(
-                hasText(
-                    text =
-                        "Crossref metadata cannot confirm",
-                    substring = true
-                )
-            )
-
-        composeTestRule
-            .onNode(
-                hasText(
-                    text =
-                        "Crossref metadata cannot confirm",
-                    substring = true
-                )
-            )
-            .assertExists()
-
         // An incomplete review must not be saved
         scrollableColumn
             .performScrollToNode(
-                hasText(
-                    "Save Source Review"
-                )
+                hasText("Save Source Review")
             )
 
         composeTestRule
             .onNode(
-                hasText(
-                    "Save Source Review"
-                )
+                hasText("Save Source Review")
             )
             .assertIsNotEnabled()
     }
@@ -250,19 +198,14 @@ class RealSourceReviewScreenTest {
                 hasScrollAction()
             )
 
-        // Scroll until the save action is composed
         scrollableColumn
             .performScrollToNode(
-                hasText(
-                    "Save Source Review"
-                )
+                hasText("Save Source Review")
             )
 
         composeTestRule
             .onNode(
-                hasText(
-                    "Save Source Review"
-                )
+                hasText("Save Source Review")
             )
             .assertIsEnabled()
             .performClick()
@@ -276,7 +219,7 @@ class RealSourceReviewScreenTest {
     }
 
     @Test
-    fun savedReview_showsConfirmationAndRemovesActiveSaveAction() {
+    fun savedReview_showsConfirmationAndRemovesSaveAction() {
         composeTestRule.setContent {
             SourceSenseTheme(
                 dynamicColor = false
@@ -306,7 +249,6 @@ class RealSourceReviewScreenTest {
                 hasScrollAction()
             )
 
-        // Scroll until the saved confirmation is composed
         scrollableColumn
             .performScrollToNode(
                 hasText(
@@ -328,9 +270,7 @@ class RealSourceReviewScreenTest {
 
         composeTestRule
             .onNode(
-                hasText(
-                    "Save Source Review"
-                )
+                hasText("Save Source Review")
             )
             .assertDoesNotExist()
     }
@@ -368,8 +308,7 @@ class RealSourceReviewScreenTest {
         )
     }
 
-    private fun createSource():
-            AcademicSource {
+    private fun createSource(): AcademicSource {
         return AcademicSource(
             doi =
                 "10.1000/source-sense-test",

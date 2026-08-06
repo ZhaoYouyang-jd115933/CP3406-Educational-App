@@ -1,30 +1,45 @@
 package com.youyangzhao.sourcesense.ui.review
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -38,6 +53,48 @@ import com.youyangzhao.sourcesense.domain.model.SourceRelevanceAssessment
 import com.youyangzhao.sourcesense.domain.model.SourceReviewDepth
 import com.youyangzhao.sourcesense.domain.model.SourceVerificationItem
 
+// Define the page palette
+private val ReviewBackground =
+    Color(0xFFF9F6FA)
+
+private val ReviewCardBackground =
+    Color(0xFFFFFFFF)
+
+private val ReviewBorder =
+    Color(0xFFE9DDE5)
+
+private val ReviewTextPrimary =
+    Color(0xFF302A32)
+
+private val ReviewTextSecondary =
+    Color(0xFF655C66)
+
+// Define the main pink accent palette
+private val ReviewPink =
+    Color(0xFFB85F84)
+
+private val ReviewPinkDark =
+    Color(0xFF914966)
+
+private val ReviewPinkSoft =
+    Color(0xFFF7E7EF)
+
+private val ReviewPinkLight =
+    Color(0xFFFFF8FB)
+
+// Define success and error states
+private val ReviewSuccess =
+    Color(0xFF357A5C)
+
+private val ReviewSuccessSoft =
+    Color(0xFFE4F3EC)
+
+private val ReviewError =
+    Color(0xFFA84F5B)
+
+private val ReviewErrorSoft =
+    Color(0xFFFBE6E8)
+
 @Composable
 fun RealSourceReviewRoute(
     viewModel: RealSourceReviewViewModel,
@@ -45,6 +102,7 @@ fun RealSourceReviewRoute(
     onOpenPaperPage: (AcademicSource) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Observe the source review form state
     val uiState by
     viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -105,284 +163,235 @@ fun RealSourceReviewScreen(
         return
     }
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp),
-        verticalArrangement =
-            Arrangement.spacedBy(16.dp)
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = ReviewBackground
     ) {
-        item {
-            Spacer(
-                modifier = Modifier.height(8.dp)
-            )
-
-            OutlinedButton(
-                onClick = onBackToExplore
-            ) {
-                Text(
-                    text = "Back to Explore"
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 18.dp),
+            verticalArrangement =
+                Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Spacer(
+                    modifier = Modifier.height(8.dp)
                 )
-            }
-        }
 
-        item {
-            ReviewHeader()
-        }
-
-        item {
-            SourceSummaryCard(
-                source = source,
-                searchTopic = uiState.searchTopic,
-                onOpenPaperPage = {
-                    onOpenPaperPage(source)
-                }
-            )
-        }
-
-        item {
-            LearningConnectionCard()
-        }
-
-        item {
-            MetadataLimitCard()
-        }
-
-        item {
-            SingleChoiceSection(
-                title = "1. Relevance",
-                supportingText =
-                    "How closely does this source match your search topic?",
-                options = SourceRelevanceAssessment.entries,
-                selectedOption =
-                    uiState.relevanceAssessment,
-                enabled = uiState.canEdit,
-                optionTitle = { option ->
-                    option.displayName
-                },
-                optionDescription = { option ->
-                    option.description
-                },
-                onOptionSelected =
-                    onRelevanceSelected
-            )
-        }
-
-        item {
-            SingleChoiceSection(
-                title = "2. Publication Information",
-                supportingText =
-                    "Is the publication record clear enough to identify and trace the source?",
-                options =
-                    PublicationInformationAssessment.entries,
-                selectedOption =
-                    uiState
-                        .publicationInformationAssessment,
-                enabled = uiState.canEdit,
-                optionTitle = { option ->
-                    option.displayName
-                },
-                optionDescription = { option ->
-                    option.description
-                },
-                onOptionSelected =
-                    onPublicationInformationSelected
-            )
-        }
-
-        item {
-            SingleChoiceSection(
-                title = "3. Currency",
-                supportingText =
-                    "Is the publication date appropriate for this topic?",
-                options =
-                    SourceCurrencyAssessment.entries,
-                selectedOption =
-                    uiState.currencyAssessment,
-                enabled = uiState.canEdit,
-                optionTitle = { option ->
-                    option.displayName
-                },
-                optionDescription = { option ->
-                    option.description
-                },
-                onOptionSelected =
-                    onCurrencySelected
-            )
-        }
-
-        item {
-            SingleChoiceSection(
-                title = "4. Review Depth",
-                supportingText =
-                    "Be precise about how much of the source you have actually reviewed.",
-                options = SourceReviewDepth.entries,
-                selectedOption = uiState.reviewDepth,
-                enabled = uiState.canEdit,
-                optionTitle = { option ->
-                    option.displayName
-                },
-                optionDescription = { option ->
-                    option.description
-                },
-                onOptionSelected =
-                    onReviewDepthSelected
-            )
-        }
-
-        item {
-            SingleChoiceSection(
-                title = "5. Current Decision",
-                supportingText =
-                    "What is the most defensible decision based on the information reviewed so far?",
-                options = SourceCitationDecision.entries,
-                selectedOption =
-                    uiState.citationDecision,
-                enabled = uiState.canEdit,
-                optionTitle = { option ->
-                    option.displayName
-                },
-                optionDescription = { option ->
-                    option.description
-                },
-                onOptionSelected =
-                    onCitationDecisionSelected
-            )
-        }
-
-        item {
-            VerificationSection(
-                selectedItems =
-                    uiState.verificationItems,
-                enabled = uiState.canEdit,
-                onItemToggled =
-                    onVerificationItemToggled
-            )
-        }
-
-        item {
-            ReflectionSection(
-                reflectionNote =
-                    uiState.reflectionNote,
-                enabled = uiState.canEdit,
-                onReflectionNoteChange =
-                    onReflectionNoteChange
-            )
-        }
-
-        uiState.errorMessage?.let { errorMessage ->
-            item {
-                SaveErrorCard(
-                    message = errorMessage,
-                    canRetry =
-                        !uiState.isSaving &&
-                                !uiState.isSaved,
-                    onRetrySaving = onRetrySaving
-                )
-            }
-        }
-
-        if (uiState.isSaved) {
-            item {
-                ReviewSavedCard()
-            }
-        }
-
-        item {
-            Button(
-                onClick = onSaveReview,
-                enabled = uiState.canSave,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (uiState.isSaving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .height(20.dp),
-                        strokeWidth = 2.dp
+                OutlinedButton(
+                    onClick = onBackToExplore,
+                    shape = RoundedCornerShape(18.dp),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = ReviewBorder
                     )
-
-                    Text(
-                        text = "Saving...",
-                        modifier = Modifier.padding(
-                            start = 10.dp
-                        )
-                    )
-                } else {
-                    Text(
-                        text = if (uiState.isSaved) {
-                            "Review Saved"
-                        } else {
-                            "Save Source Review"
-                        }
-                    )
-                }
-            }
-        }
-
-        if (uiState.isSaved) {
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement =
-                        Arrangement.spacedBy(12.dp)
                 ) {
-                    OutlinedButton(
-                        onClick = {
+                    Text(
+                        text = "Back to Explore",
+                        fontWeight = FontWeight.SemiBold,
+                        color = ReviewTextPrimary
+                    )
+                }
+            }
+
+            item {
+                ReviewHeader()
+            }
+
+            item {
+                SourceSummaryCard(
+                    source = source,
+                    searchTopic = uiState.searchTopic,
+                    onOpenPaperPage = {
+                        onOpenPaperPage(source)
+                    }
+                )
+            }
+
+            item {
+                SingleChoiceSection(
+                    number = 1,
+                    title = "Relevance",
+                    prompt = "How well does this source match your topic?",
+                    options =
+                        SourceRelevanceAssessment.entries,
+                    selectedOption =
+                        uiState.relevanceAssessment,
+                    enabled = uiState.canEdit,
+                    optionTitle = { option ->
+                        option.displayName
+                    },
+                    optionDescription = { option ->
+                        option.description
+                    },
+                    onOptionSelected =
+                        onRelevanceSelected
+                )
+            }
+
+            item {
+                SingleChoiceSection(
+                    number = 2,
+                    title = "Publication Information",
+                    prompt = "Can you identify and trace this source?",
+                    options =
+                        PublicationInformationAssessment.entries,
+                    selectedOption =
+                        uiState
+                            .publicationInformationAssessment,
+                    enabled = uiState.canEdit,
+                    optionTitle = { option ->
+                        option.displayName
+                    },
+                    optionDescription = { option ->
+                        option.description
+                    },
+                    onOptionSelected =
+                        onPublicationInformationSelected
+                )
+            }
+
+            item {
+                SingleChoiceSection(
+                    number = 3,
+                    title = "Currency",
+                    prompt = "Is the publication date suitable for this topic?",
+                    options =
+                        SourceCurrencyAssessment.entries,
+                    selectedOption =
+                        uiState.currencyAssessment,
+                    enabled = uiState.canEdit,
+                    optionTitle = { option ->
+                        option.displayName
+                    },
+                    optionDescription = { option ->
+                        option.description
+                    },
+                    onOptionSelected =
+                        onCurrencySelected
+                )
+            }
+
+            item {
+                SingleChoiceSection(
+                    number = 4,
+                    title = "Review Depth",
+                    prompt = "How much of the source did you review?",
+                    options = SourceReviewDepth.entries,
+                    selectedOption =
+                        uiState.reviewDepth,
+                    enabled = uiState.canEdit,
+                    optionTitle = { option ->
+                        option.displayName
+                    },
+                    optionDescription = { option ->
+                        option.description
+                    },
+                    onOptionSelected =
+                        onReviewDepthSelected
+                )
+            }
+
+            item {
+                SingleChoiceSection(
+                    number = 5,
+                    title = "Current Decision",
+                    prompt = "What is your most defensible decision now?",
+                    options =
+                        SourceCitationDecision.entries,
+                    selectedOption =
+                        uiState.citationDecision,
+                    enabled = uiState.canEdit,
+                    optionTitle = { option ->
+                        option.displayName
+                    },
+                    optionDescription = { option ->
+                        option.description
+                    },
+                    onOptionSelected =
+                        onCitationDecisionSelected
+                )
+            }
+
+            item {
+                VerificationSection(
+                    selectedItems =
+                        uiState.verificationItems,
+                    enabled = uiState.canEdit,
+                    onItemToggled =
+                        onVerificationItemToggled
+                )
+            }
+
+            item {
+                ReflectionSection(
+                    reflectionNote =
+                        uiState.reflectionNote,
+                    enabled = uiState.canEdit,
+                    onReflectionNoteChange =
+                        onReflectionNoteChange
+                )
+            }
+
+            uiState.errorMessage?.let { errorMessage ->
+                item {
+                    SaveErrorCard(
+                        message = errorMessage,
+                        canRetry =
+                            !uiState.isSaving &&
+                                    !uiState.isSaved,
+                        onRetrySaving =
+                            onRetrySaving
+                    )
+                }
+            }
+
+            if (uiState.isSaved) {
+                item {
+                    ReviewSavedCard()
+                }
+
+                item {
+                    SavedReviewActions(
+                        onReadSource = {
                             onOpenPaperPage(source)
                         },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = "Read Source"
-                        )
-                    }
-
-                    Button(
-                        onClick = onBackToExplore,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = "Back to Explore"
-                        )
-                    }
+                        onBackToExplore =
+                            onBackToExplore
+                    )
+                }
+            } else {
+                item {
+                    SaveReviewButton(
+                        isSaving = uiState.isSaving,
+                        enabled = uiState.canSave,
+                        onSaveReview = onSaveReview
+                    )
                 }
             }
-        }
 
-        item {
-            Spacer(
-                modifier = Modifier.height(24.dp)
-            )
+            item {
+                Spacer(
+                    modifier = Modifier.height(24.dp)
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun ReviewHeader() {
-    Column(
+    // Keep the page heading clear without extra explanatory copy
+    Text(
+        text = "Review a Real Source",
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment =
-            Alignment.CenterHorizontally,
-        verticalArrangement =
-            Arrangement.spacedBy(8.dp)
-    ) {
-        Text(
-            text = "Review a Real Source",
-            style =
-                MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-
-        Text(
-            text =
-                "Apply the evaluation skills from the learning modules to a real Crossref publication.",
-            style = MaterialTheme.typography.bodyLarge,
-            color =
-                MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-    }
+        style =
+            MaterialTheme.typography.headlineLarge,
+        fontWeight = FontWeight.ExtraBold,
+        textAlign = TextAlign.Center,
+        color = ReviewTextPrimary
+    )
 }
 
 @Composable
@@ -393,178 +402,167 @@ private fun SourceSummaryCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme.surfaceVariant
+            containerColor = Color.Transparent
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = ReviewBorder
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp
         )
     ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement =
-                Arrangement.spacedBy(10.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            ReviewCardBackground,
+                            ReviewPinkLight
+                        )
+                    )
+                )
         ) {
-            Text(
-                text = "Search Topic",
-                style =
-                    MaterialTheme.typography.labelLarge,
-                color =
-                    MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
+            // Add a subtle decorative highlight behind the title
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(
+                        x = 34.dp,
+                        y = (-34).dp
+                    )
+                    .size(108.dp)
+                    .clip(CircleShape)
+                    .background(
+                        ReviewPinkSoft.copy(
+                            alpha = 0.8f
+                        )
+                    )
             )
 
-            Text(
-                text = searchTopic,
-                style =
-                    MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Text(
-                text = source.title,
-                style =
-                    MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            ReviewSourceDetail(
-                label = "Authors",
-                value = source.authorsDisplay
-            )
-
-            ReviewSourceDetail(
-                label = "Publication",
-                value = source.publicationDisplay
-            )
-
-            ReviewSourceDetail(
-                label = "Year",
-                value = source.yearDisplay
-            )
-
-            ReviewSourceDetail(
-                label = "Source Type",
-                value = source.typeDisplay
-            )
-
-            ReviewSourceDetail(
-                label = "DOI",
-                value = source.doi
-            )
-
-            source.abstractText
-                ?.takeIf { abstractText ->
-                    abstractText.isNotBlank()
-                }
-                ?.let { abstractText ->
-                    ReviewSourceDetail(
-                        label = "Abstract",
-                        value = abstractText
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement =
+                    Arrangement.spacedBy(14.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(100.dp),
+                    color = ReviewPinkSoft
+                ) {
+                    Text(
+                        text = "TOPIC  $searchTopic",
+                        modifier = Modifier.padding(
+                            horizontal = 12.dp,
+                            vertical = 7.dp
+                        ),
+                        style =
+                            MaterialTheme.typography
+                                .labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = ReviewPinkDark
                     )
                 }
 
-            OutlinedButton(
-                onClick = onOpenPaperPage,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+                // Make the publication title the strongest element
                 Text(
-                    text = "Read Source"
+                    text = source.title,
+                    style =
+                        MaterialTheme.typography
+                            .headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = ReviewTextPrimary
                 )
+
+                SourceDetailCard(
+                    label = "Authors",
+                    value = source.authorsDisplay
+                )
+
+                SourceDetailCard(
+                    label = "Publication",
+                    value = source.publicationDisplay
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(10.dp)
+                ) {
+                    SourceDetailCard(
+                        label = "Year",
+                        value = source.yearDisplay,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    SourceDetailCard(
+                        label = "Source Type",
+                        value = source.typeDisplay,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                SourceDetailCard(
+                    label = "DOI",
+                    value = source.doi
+                )
+
+                Button(
+                    onClick = onOpenPaperPage,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = ReviewPink
+                        )
+                ) {
+                    Text(
+                        text = "Read Source",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ReviewSourceDetail(
+private fun SourceDetailCard(
     label: String,
-    value: String
+    value: String,
+    modifier: Modifier = Modifier
 ) {
-    Column(
-        verticalArrangement =
-            Arrangement.spacedBy(2.dp)
-    ) {
-        Text(
-            text = label,
-            style =
-                MaterialTheme.typography.labelMedium,
-            color =
-                MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Bold
-        )
-
-        Text(
-            text = value,
-            style =
-                MaterialTheme.typography.bodyMedium
-        )
-    }
-}
-
-@Composable
-private fun LearningConnectionCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme.primaryContainer
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White.copy(alpha = 0.82f),
+        border = BorderStroke(
+            width = 1.dp,
+            color = ReviewBorder
         )
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier.padding(12.dp),
             verticalArrangement =
-                Arrangement.spacedBy(8.dp)
+                Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = "Learn → Apply → Reflect",
+                text = label,
                 style =
-                    MaterialTheme.typography.titleMedium,
-                color =
-                    MaterialTheme.colorScheme.onPrimaryContainer,
-                fontWeight = FontWeight.Bold
+                    MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = ReviewPinkDark
             )
 
             Text(
-                text =
-                    "The learning modules teach evaluation concepts. This review helps you apply those concepts to a real publication and record what still needs verification.",
+                text = value,
                 style =
                     MaterialTheme.typography.bodyMedium,
-                color =
-                    MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
-    }
-}
-
-@Composable
-private fun MetadataLimitCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme.errorContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement =
-                Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = "Important Evidence Limit",
-                style =
-                    MaterialTheme.typography.titleMedium,
-                color =
-                    MaterialTheme.colorScheme.onErrorContainer,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text =
-                    "Crossref metadata cannot confirm the study method, sample quality, statistical interpretation, limitations, funding or research ethics. Read the abstract or full paper before using the source in academic work.",
-                style =
-                    MaterialTheme.typography.bodyMedium,
-                color =
-                    MaterialTheme.colorScheme.onErrorContainer
+                color = ReviewTextPrimary
             )
         }
     }
@@ -572,8 +570,9 @@ private fun MetadataLimitCard() {
 
 @Composable
 private fun <T> SingleChoiceSection(
+    number: Int,
     title: String,
-    supportingText: String,
+    prompt: String,
     options: List<T>,
     selectedOption: T?,
     enabled: Boolean,
@@ -582,26 +581,32 @@ private fun <T> SingleChoiceSection(
     onOptionSelected: (T) -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = ReviewCardBackground
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = ReviewBorder
+        )
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier.padding(16.dp),
             verticalArrangement =
                 Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = title,
-                style =
-                    MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+            SectionHeader(
+                number = number,
+                title = title,
+                isComplete = selectedOption != null
             )
 
             Text(
-                text = supportingText,
+                text = prompt,
                 style =
                     MaterialTheme.typography.bodyMedium,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                color = ReviewTextSecondary
             )
 
             options.forEach { option ->
@@ -617,6 +622,91 @@ private fun <T> SingleChoiceSection(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    number: Int,
+    title: String,
+    isComplete: Boolean,
+    optional: Boolean = false
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement =
+            Arrangement.spacedBy(10.dp),
+        verticalAlignment =
+            Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(36.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = ReviewPinkSoft
+        ) {
+            Box(
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = number.toString(),
+                    style =
+                        MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = ReviewPinkDark
+                )
+            }
+        }
+
+        Text(
+            text = title,
+            modifier = Modifier.weight(1f),
+            style =
+                MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.ExtraBold,
+            color = ReviewTextPrimary
+        )
+
+        when {
+            isComplete -> {
+                StatusChip(
+                    text = "SELECTED",
+                    containerColor = ReviewSuccessSoft,
+                    contentColor = ReviewSuccess
+                )
+            }
+
+            optional -> {
+                StatusChip(
+                    text = "OPTIONAL",
+                    containerColor = ReviewPinkSoft,
+                    contentColor = ReviewPinkDark
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusChip(
+    text: String,
+    containerColor: Color,
+    contentColor: Color
+) {
+    Surface(
+        shape = RoundedCornerShape(100.dp),
+        color = containerColor
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(
+                horizontal = 9.dp,
+                vertical = 5.dp
+            ),
+            style =
+                MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.ExtraBold,
+            color = contentColor
+        )
     }
 }
 
@@ -637,13 +727,23 @@ private fun ReviewChoiceRow(
                 role = Role.RadioButton,
                 onClick = onSelected
             ),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (selected) {
-                MaterialTheme.colorScheme
-                    .primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
+            containerColor =
+                if (selected) {
+                    ReviewPinkSoft
+                } else {
+                    ReviewPinkLight
+                }
+        ),
+        border = BorderStroke(
+            width = if (selected) 1.5.dp else 1.dp,
+            color =
+                if (selected) {
+                    ReviewPink
+                } else {
+                    ReviewBorder
+                }
         )
     ) {
         Row(
@@ -656,7 +756,13 @@ private fun ReviewChoiceRow(
             RadioButton(
                 selected = selected,
                 enabled = enabled,
-                onClick = null
+                onClick = null,
+                colors =
+                    RadioButtonDefaults.colors(
+                        selectedColor = ReviewPink,
+                        unselectedColor =
+                            ReviewTextSecondary
+                    )
             )
 
             Column(
@@ -664,22 +770,21 @@ private fun ReviewChoiceRow(
                     .weight(1f)
                     .padding(start = 10.dp),
                 verticalArrangement =
-                    Arrangement.spacedBy(2.dp)
+                    Arrangement.spacedBy(4.dp)
             ) {
                 Text(
                     text = title,
                     style =
                         MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold,
+                    color = ReviewTextPrimary
                 )
 
                 Text(
                     text = description,
                     style =
                         MaterialTheme.typography.bodySmall,
-                    color =
-                        MaterialTheme.colorScheme
-                            .onSurfaceVariant
+                    color = ReviewTextSecondary
                 )
             }
         }
@@ -693,27 +798,32 @@ private fun VerificationSection(
     onItemToggled: (SourceVerificationItem) -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = ReviewCardBackground
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = ReviewBorder
+        )
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier.padding(16.dp),
             verticalArrangement =
-                Arrangement.spacedBy(10.dp)
+                Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = "6. What Must Be Verified?",
-                style =
-                    MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+            SectionHeader(
+                number = 6,
+                title = "What Must Be Verified?",
+                isComplete = selectedItems.isNotEmpty()
             )
 
             Text(
-                text =
-                    "Select at least one item that should be checked before relying on this source.",
+                text = "Choose at least one item.",
                 style =
                     MaterialTheme.typography.bodyMedium,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                color = ReviewTextSecondary
             )
 
             SourceVerificationItem.entries.forEach { item ->
@@ -737,7 +847,7 @@ private fun VerificationItemRow(
     enabled: Boolean,
     onToggle: () -> Unit
 ) {
-    Row(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .toggleable(
@@ -747,25 +857,62 @@ private fun VerificationItemRow(
                 onValueChange = {
                     onToggle()
                 }
-            )
-            .padding(vertical = 6.dp),
-        verticalAlignment =
-            Alignment.CenterVertically
+            ),
+        shape = RoundedCornerShape(16.dp),
+        color =
+            if (checked) {
+                ReviewPinkSoft
+            } else {
+                ReviewPinkLight
+            },
+        border = BorderStroke(
+            width = if (checked) 1.5.dp else 1.dp,
+            color =
+                if (checked) {
+                    ReviewPink
+                } else {
+                    ReviewBorder
+                }
+        )
     ) {
-        Checkbox(
-            checked = checked,
-            enabled = enabled,
-            onCheckedChange = null
-        )
-
-        Text(
-            text = item.displayName,
+        Row(
             modifier = Modifier
-                .weight(1f)
-                .padding(start = 10.dp),
-            style =
-                MaterialTheme.typography.bodyLarge
-        )
+                .fillMaxWidth()
+                .padding(
+                    horizontal = 12.dp,
+                    vertical = 10.dp
+                ),
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = checked,
+                enabled = enabled,
+                onCheckedChange = null,
+                colors = CheckboxDefaults.colors(
+                    checkedColor = ReviewPink,
+                    uncheckedColor =
+                        ReviewTextSecondary,
+                    checkmarkColor = Color.White
+                )
+            )
+
+            Text(
+                text = item.displayName,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 8.dp),
+                style =
+                    MaterialTheme.typography.bodyLarge,
+                fontWeight =
+                    if (checked) {
+                        FontWeight.SemiBold
+                    } else {
+                        FontWeight.Normal
+                    },
+                color = ReviewTextPrimary
+            )
+        }
     }
 }
 
@@ -776,27 +923,26 @@ private fun ReflectionSection(
     onReflectionNoteChange: (String) -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = ReviewCardBackground
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = ReviewBorder
+        )
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier.padding(16.dp),
             verticalArrangement =
-                Arrangement.spacedBy(10.dp)
+                Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = "7. Reflection",
-                style =
-                    MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text =
-                    "Record a short note about why you may use, reject or investigate this source further.",
-                style =
-                    MaterialTheme.typography.bodyMedium,
-                color =
-                    MaterialTheme.colorScheme.onSurfaceVariant
+            SectionHeader(
+                number = 7,
+                title = "Reflection",
+                isComplete = reflectionNote.isNotBlank(),
+                optional = reflectionNote.isBlank()
             )
 
             OutlinedTextField(
@@ -805,19 +951,66 @@ private fun ReflectionSection(
                     onReflectionNoteChange,
                 enabled = enabled,
                 modifier = Modifier.fillMaxWidth(),
-                label = {
-                    Text(
-                        text = "Reflection note"
-                    )
-                },
                 placeholder = {
                     Text(
                         text =
-                            "Example: The title is relevant, but I still need to verify the sample and limitations."
+                            "Why might you use, reject or investigate this source?"
                     )
                 },
                 minLines = 3,
-                maxLines = 6
+                maxLines = 6,
+                shape = RoundedCornerShape(18.dp),
+                colors =
+                    OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = ReviewPink,
+                        focusedLabelColor = ReviewPinkDark,
+                        cursorColor = ReviewPinkDark
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun SaveReviewButton(
+    isSaving: Boolean,
+    enabled: Boolean,
+    onSaveReview: () -> Unit
+) {
+    Button(
+        onClick = onSaveReview,
+        enabled = enabled,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(54.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = ReviewPink,
+            contentColor = Color.White,
+            disabledContainerColor =
+                Color(0xFFE4DFE4),
+            disabledContentColor =
+                Color(0xFFAAA3AA)
+        )
+    ) {
+        if (isSaving) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color = Color.White
+            )
+
+            Text(
+                text = "Saving...",
+                modifier = Modifier.padding(
+                    start = 10.dp
+                ),
+                fontWeight = FontWeight.Bold
+            )
+        } else {
+            Text(
+                text = "Save Source Review",
+                fontWeight = FontWeight.Bold
             )
         }
     }
@@ -831,13 +1024,17 @@ private fun SaveErrorCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme.errorContainer
+            containerColor = ReviewErrorSoft
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = ReviewError.copy(alpha = 0.4f)
         )
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier.padding(16.dp),
             verticalArrangement =
                 Arrangement.spacedBy(10.dp)
         ) {
@@ -845,25 +1042,30 @@ private fun SaveErrorCard(
                 text = "Unable to Save Review",
                 style =
                     MaterialTheme.typography.titleMedium,
-                color =
-                    MaterialTheme.colorScheme.onErrorContainer,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = ReviewError
             )
 
             Text(
                 text = message,
                 style =
                     MaterialTheme.typography.bodyMedium,
-                color =
-                    MaterialTheme.colorScheme.onErrorContainer
+                color = ReviewTextPrimary
             )
 
             if (canRetry) {
                 OutlinedButton(
-                    onClick = onRetrySaving
+                    onClick = onRetrySaving,
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(
+                        width = 1.dp,
+                        color = ReviewError
+                    )
                 ) {
                     Text(
-                        text = "Try Again"
+                        text = "Try Again",
+                        color = ReviewError,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -875,32 +1077,77 @@ private fun SaveErrorCard(
 private fun ReviewSavedCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme.secondaryContainer
+            containerColor = ReviewSuccessSoft
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = ReviewSuccess.copy(alpha = 0.4f)
         )
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
             verticalArrangement =
-                Arrangement.spacedBy(8.dp)
+                Arrangement.spacedBy(6.dp)
         ) {
             Text(
                 text = "Review Saved",
                 style =
-                    MaterialTheme.typography.titleMedium,
-                color =
-                    MaterialTheme.colorScheme.onSecondaryContainer,
-                fontWeight = FontWeight.Bold
+                    MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = ReviewSuccess
             )
 
+            // Keep this confirmation text stable for UI tests
             Text(
                 text =
                     "Your structured review has been stored locally on this device.",
                 style =
                     MaterialTheme.typography.bodyMedium,
-                color =
-                    MaterialTheme.colorScheme.onSecondaryContainer
+                color = ReviewTextPrimary
+            )
+        }
+    }
+}
+
+@Composable
+private fun SavedReviewActions(
+    onReadSource: () -> Unit,
+    onBackToExplore: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement =
+            Arrangement.spacedBy(12.dp)
+    ) {
+        OutlinedButton(
+            onClick = onReadSource,
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(18.dp),
+            border = BorderStroke(
+                width = 1.dp,
+                color = ReviewPink
+            )
+        ) {
+            Text(
+                text = "Read Source",
+                fontWeight = FontWeight.SemiBold,
+                color = ReviewPinkDark
+            )
+        }
+
+        Button(
+            onClick = onBackToExplore,
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(18.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = ReviewPink
+            )
+        ) {
+            Text(
+                text = "Back to Explore",
+                fontWeight = FontWeight.Bold
             )
         }
     }
@@ -911,44 +1158,70 @@ private fun MissingSourceContent(
     onBackToExplore: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = ReviewBackground
     ) {
-        Text(
-            text = "No Source Selected",
-            style =
-                MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(
-            modifier = Modifier.height(12.dp)
-        )
-
-        Text(
-            text =
-                "Return to Explore and choose Evaluate Source from a search result.",
-            style = MaterialTheme.typography.bodyLarge,
-            color =
-                MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(
-            modifier = Modifier.height(24.dp)
-        )
-
-        Button(
-            onClick = onBackToExplore
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement =
+                Arrangement.Center,
+            horizontalAlignment =
+                Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Back to Explore"
-            )
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = ReviewCardBackground
+                ),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = ReviewBorder
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally,
+                    verticalArrangement =
+                        Arrangement.spacedBy(14.dp)
+                ) {
+                    Text(
+                        text = "No Source Selected",
+                        style =
+                            MaterialTheme.typography
+                                .headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        textAlign = TextAlign.Center,
+                        color = ReviewTextPrimary
+                    )
+
+                    Text(
+                        text =
+                            "Return to Explore and choose a source to evaluate.",
+                        style =
+                            MaterialTheme.typography.bodyLarge,
+                        color = ReviewTextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Button(
+                        onClick = onBackToExplore,
+                        shape = RoundedCornerShape(18.dp),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = ReviewPink
+                            )
+                    ) {
+                        Text(
+                            text = "Back to Explore",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
         }
     }
 }
