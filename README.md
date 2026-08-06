@@ -229,22 +229,50 @@ SourceSense uses an **MVVM-style layered architecture** with repository interfac
 
 ```mermaid
 flowchart TD
-    MAIN["MainActivity"] -->|creates| CONTAINER["AppContainer"]
-    MAIN -->|opens| NAV["SourceSenseNavHost"]
+    MAIN["MainActivity"] -->|creates once| CONTAINER["AppContainer"]
+    MAIN -->|composes and passes settings| NAV["SourceSenseNavHost"]
 
     CONTAINER -->|provides repository instances| NAV
-    NAV -->|creates| FACTORY["ViewModel Factories"]
-    FACTORY -->|creates| VM["ViewModels and UI State"]
 
-    UI["Jetpack Compose Screens and Routes"] -->|observes state and sends actions| VM
-    VM -->|uses| DOMAIN["Domain Models and Repository Interfaces"]
+    NAV -->|creates| FACTORIES["ViewModel Factories"]
+    FACTORIES -->|create| VMS["ViewModels"]
+    NAV -->|hosts navigation for| UI["Compose Routes and Screens"]
 
-    REPO["Repository Implementations"] -->|implement| DOMAIN
+    VMS -->|expose UI State through StateFlow| UI
+    UI -->|send user actions| VMS
 
-    CONTAINER -->|creates| REPO
-    REPO -->|reads and writes| ROOM["Room Database and DAOs"]
-    REPO -->|stores preferences| DATASTORE["Preferences DataStore"]
-    REPO -->|requests publication data| API["Crossref REST API"]
+    VMS -->|depend on| INTERFACES["Domain Repository Interfaces"]
+    VMS -->|use| MODELS["Domain Models"]
+
+    CONTAINER -->|creates| MODULE_REPO["LocalLearningModuleRepository"]
+    CONTAINER -->|creates| SOURCE_REPO["CrossrefAcademicSourceRepository"]
+    CONTAINER -->|creates| HISTORY_REPO["RoomEvaluationHistoryRepository"]
+    CONTAINER -->|creates| REVIEW_REPO["RoomSourceReviewRepository"]
+    CONTAINER -->|creates| STATS_REPO["RoomStatisticsRepository"]
+    CONTAINER -->|creates| SETTINGS_REPO["DataStoreUserSettingsRepository"]
+
+    MODULE_REPO -.->|implements| INTERFACES
+    SOURCE_REPO -.->|implements| INTERFACES
+    HISTORY_REPO -.->|implements| INTERFACES
+    REVIEW_REPO -.->|implements| INTERFACES
+    STATS_REPO -.->|implements| INTERFACES
+    SETTINGS_REPO -.->|implements| INTERFACES
+
+    MODULE_REPO -->|provides| MODULES["Local Learning Module Catalogue"]
+    SOURCE_REPO -->|requests publication data| API["Crossref REST API"]
+
+    CONTAINER -->|gets singleton instance| DATABASE["SourceSenseDatabase"]
+    DATABASE -->|provides| ATTEMPT_DAO["EvaluationAttemptDao"]
+    DATABASE -->|provides| REVIEW_DAO["SourceReviewDao"]
+
+    HISTORY_REPO -->|reads and writes| ATTEMPT_DAO
+    REVIEW_REPO -->|reads and writes| REVIEW_DAO
+
+    STATS_REPO -->|reads evaluation data| ATTEMPT_DAO
+    STATS_REPO -->|reads source reviews| REVIEW_DAO
+    STATS_REPO -->|reads module information| MODULE_REPO
+
+    SETTINGS_REPO -->|stores user preferences| DATASTORE["Preferences DataStore"]
 ```
 
 ### Main layers
