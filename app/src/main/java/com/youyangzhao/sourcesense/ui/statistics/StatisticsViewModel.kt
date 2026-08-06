@@ -12,7 +12,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class StatisticsViewModel(
-    private val statisticsRepository: StatisticsRepository
+    private val statisticsRepository:
+    StatisticsRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -51,16 +52,41 @@ class StatisticsViewModel(
         }
     }
 
+    // Keep the original action for existing tests and UI calls
     fun requestClearHistory() {
-        val currentState = _uiState.value
+        requestClearTarget(
+            target =
+                StatisticsClearTarget
+                    .EVALUATION_HISTORY
+        )
+    }
 
-        if (!currentState.canClearHistory) {
+    fun requestClearSourceReviews() {
+        requestClearTarget(
+            target =
+                StatisticsClearTarget
+                    .SOURCE_REVIEWS
+        )
+    }
+
+    fun requestClearAllData() {
+        requestClearTarget(
+            target =
+                StatisticsClearTarget
+                    .ALL_LEARNING_DATA
+        )
+    }
+
+    private fun requestClearTarget(
+        target: StatisticsClearTarget
+    ) {
+        if (!canClear(target)) {
             return
         }
 
         _uiState.update { state ->
             state.copy(
-                showClearConfirmation = true
+                clearTarget = target
             )
         }
     }
@@ -68,21 +94,23 @@ class StatisticsViewModel(
     fun dismissClearConfirmation() {
         _uiState.update { state ->
             state.copy(
-                showClearConfirmation = false
+                clearTarget = null
             )
         }
     }
 
     fun confirmClearHistory() {
         val currentState = _uiState.value
+        val target =
+            currentState.clearTarget ?: return
 
-        if (!currentState.canClearHistory) {
+        if (!canClear(target)) {
             return
         }
 
         _uiState.update { state ->
             state.copy(
-                showClearConfirmation = false,
+                clearTarget = null,
                 isClearingHistory = true,
                 errorMessage = null
             )
@@ -90,9 +118,28 @@ class StatisticsViewModel(
 
         viewModelScope.launch {
             runCatching {
-                statisticsRepository.clearLearningHistory()
+                when (target) {
+                    StatisticsClearTarget
+                        .EVALUATION_HISTORY -> {
+                        // Use the legacy method to preserve existing repository tests
+                        statisticsRepository
+                            .clearLearningHistory()
+                    }
+
+                    StatisticsClearTarget
+                        .SOURCE_REVIEWS -> {
+                        statisticsRepository
+                            .clearSourceReviews()
+                    }
+
+                    StatisticsClearTarget
+                        .ALL_LEARNING_DATA -> {
+                        statisticsRepository
+                            .clearAllLearningData()
+                    }
+                }
             }.onSuccess {
-                // Room automatically emits the empty statistics
+                // Room emits the updated empty or partial statistics automatically
                 _uiState.update { state ->
                     state.copy(
                         isClearingHistory = false
@@ -103,9 +150,54 @@ class StatisticsViewModel(
                     state.copy(
                         isClearingHistory = false,
                         errorMessage =
-                            "Learning history could not be cleared."
+                            clearFailureMessage(target)
                     )
                 }
+            }
+        }
+    }
+
+    private fun canClear(
+        target: StatisticsClearTarget
+    ): Boolean {
+        val currentState = _uiState.value
+
+        return when (target) {
+            StatisticsClearTarget
+                .EVALUATION_HISTORY -> {
+                currentState.canClearHistory
+            }
+
+            StatisticsClearTarget
+                .SOURCE_REVIEWS -> {
+                currentState.canClearSourceReviews
+            }
+
+            StatisticsClearTarget
+                .ALL_LEARNING_DATA -> {
+                currentState.canClearAllData
+            }
+        }
+    }
+
+    private fun clearFailureMessage(
+        target: StatisticsClearTarget
+    ): String {
+        return when (target) {
+            StatisticsClearTarget
+                .EVALUATION_HISTORY -> {
+                // Keep this wording stable for existing ViewModel tests
+                "Learning history could not be cleared."
+            }
+
+            StatisticsClearTarget
+                .SOURCE_REVIEWS -> {
+                "Source reviews could not be cleared."
+            }
+
+            StatisticsClearTarget
+                .ALL_LEARNING_DATA -> {
+                "Learning data could not be cleared."
             }
         }
     }
@@ -120,7 +212,8 @@ class StatisticsViewModel(
 }
 
 class StatisticsViewModelFactory(
-    private val statisticsRepository: StatisticsRepository
+    private val statisticsRepository:
+    StatisticsRepository
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -133,7 +226,8 @@ class StatisticsViewModelFactory(
             )
         ) {
             return StatisticsViewModel(
-                statisticsRepository = statisticsRepository
+                statisticsRepository =
+                    statisticsRepository
             ) as T
         }
 

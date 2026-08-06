@@ -1,4 +1,5 @@
 package com.youyangzhao.sourcesense.data.local.dao
+
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -18,7 +19,8 @@ interface SourceReviewDao {
 
     @Query(
         """
-        SELECT * FROM source_reviews
+        SELECT *
+        FROM source_reviews
         ORDER BY reviewedAt DESC
         """
     )
@@ -27,7 +29,8 @@ interface SourceReviewDao {
 
     @Query(
         """
-        SELECT * FROM source_reviews
+        SELECT *
+        FROM source_reviews
         WHERE id = :reviewId
         LIMIT 1
         """
@@ -35,5 +38,12 @@ interface SourceReviewDao {
     suspend fun getSourceReview(
         reviewId: Long
     ): SourceReviewEntity?
+
+    @Query(
+        """
+        DELETE FROM source_reviews
+        """
+    )
+    suspend fun clearAllSourceReviews()
 }
 

@@ -1,17 +1,25 @@
 package com.youyangzhao.sourcesense.ui.statistics
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -19,173 +27,190 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.youyangzhao.sourcesense.domain.model.RecentAttempt
+import com.youyangzhao.sourcesense.domain.model.DifficultyProgress
+import com.youyangzhao.sourcesense.domain.model.LearningActivityType
+import com.youyangzhao.sourcesense.domain.model.LearningStatistics
+import com.youyangzhao.sourcesense.domain.model.RecentLearningActivity
+import com.youyangzhao.sourcesense.domain.model.RecommendedFocus
 import com.youyangzhao.sourcesense.domain.model.SkillAccuracy
+import com.youyangzhao.sourcesense.domain.model.SkillProgressStatus
+import com.youyangzhao.sourcesense.domain.model.SourceCitationDecision
+import com.youyangzhao.sourcesense.domain.model.SourceReviewDepth
+import com.youyangzhao.sourcesense.domain.model.SourceReviewStatistics
+import com.youyangzhao.sourcesense.domain.model.SourceVerificationItem
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+// Define the overall statistics page palette
+private val StatisticsBackground =
+    Color(0xFFF8F5FA)
+
+private val StatisticsTextPrimary =
+    Color(0xFF302A32)
+
+private val StatisticsTextSecondary =
+    Color(0xFF625A65)
+
+private val StatisticsBorder =
+    Color(0xFFE8DDE5)
+
+// Define the main pink and purple accents
+private val StatisticsPink =
+    Color(0xFFB86186)
+
+private val StatisticsPinkDark =
+    Color(0xFF934D6D)
+
+private val StatisticsPinkSoft =
+    Color(0xFFF6E7EE)
+
+private val StatisticsPurple =
+    Color(0xFF6F6BB0)
+
+private val StatisticsPurpleSoft =
+    Color(0xFFEDEBFA)
+
+// Define status colors for skill feedback
+private val StrongGreen =
+    Color(0xFF357A5C)
+
+private val StrongGreenSoft =
+    Color(0xFFE4F3EC)
+
+private val DevelopingGold =
+    Color(0xFF8C6A24)
+
+private val DevelopingGoldSoft =
+    Color(0xFFF8EFCF)
+
+private val PracticeRed =
+    Color(0xFFA8505D)
+
+private val PracticeRedSoft =
+    Color(0xFFF9E4E6)
+
+private val NeutralBlue =
+    Color(0xFF4E678F)
+
+private val NeutralBlueSoft =
+    Color(0xFFE8EFF9)
+
 @Composable
 fun StatisticsRoute(
     viewModel: StatisticsViewModel,
+    onPracticeModule: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by
+    viewModel.uiState.collectAsStateWithLifecycle()
 
     StatisticsScreen(
         uiState = uiState,
-        onRequestClearHistory = viewModel::requestClearHistory,
+        onPracticeModule = onPracticeModule,
+        onRequestClearHistory =
+            viewModel::requestClearHistory,
+        onRequestClearSourceReviews =
+            viewModel::requestClearSourceReviews,
+        onRequestClearAllData =
+            viewModel::requestClearAllData,
         onDismissClearConfirmation =
             viewModel::dismissClearConfirmation,
-        onConfirmClearHistory = viewModel::confirmClearHistory,
-        onClearError = viewModel::clearError,
+        onConfirmClearHistory =
+            viewModel::confirmClearHistory,
+        onClearError =
+            viewModel::clearError,
         modifier = modifier
     )
 }
 
 @Composable
 fun StatisticsScreen(
-    uiState: StatisticsUiState = StatisticsUiState(
-        isLoading = false
-    ),
-    onRequestClearHistory: () -> Unit = {},
-    onDismissClearConfirmation: () -> Unit = {},
-    onConfirmClearHistory: () -> Unit = {},
-    onClearError: () -> Unit = {},
+    uiState: StatisticsUiState,
+    onPracticeModule: (String) -> Unit,
+    onRequestClearHistory: () -> Unit,
+    onRequestClearSourceReviews: () -> Unit,
+    onRequestClearAllData: () -> Unit,
+    onDismissClearConfirmation: () -> Unit,
+    onConfirmClearHistory: () -> Unit,
+    onClearError: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (uiState.showClearConfirmation) {
-        ClearHistoryDialog(
-            onDismiss = onDismissClearConfirmation,
-            onConfirm = onConfirmClearHistory
+        ClearDataDialog(
+            target = uiState.clearTarget,
+            onDismiss =
+                onDismissClearConfirmation,
+            onConfirm =
+                onConfirmClearHistory
         )
     }
 
-    when {
-        uiState.isLoading -> {
-            StatisticsLoadingContent(
-                modifier = modifier
-            )
-        }
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        color = StatisticsBackground
+    ) {
+        when {
+            uiState.isLoading -> {
+                StatisticsLoadingContent()
+            }
 
-        uiState.errorMessage != null && !uiState.hasData -> {
-            StatisticsErrorContent(
-                message = uiState.errorMessage,
-                onDismiss = onClearError,
-                modifier = modifier
-            )
-        }
-
-        !uiState.hasData -> {
-            EmptyStatisticsContent(
-                modifier = modifier
-            )
-        }
-
-        else -> {
-            StatisticsContent(
-                uiState = uiState,
-                onRequestClearHistory =
-                    onRequestClearHistory,
-                onClearError = onClearError,
-                modifier = modifier
-            )
+            else -> {
+                StatisticsContent(
+                    uiState = uiState,
+                    onPracticeModule =
+                        onPracticeModule,
+                    onRequestClearHistory =
+                        onRequestClearHistory,
+                    onRequestClearSourceReviews =
+                        onRequestClearSourceReviews,
+                    onRequestClearAllData =
+                        onRequestClearAllData,
+                    onClearError = onClearError
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun StatisticsLoadingContent(
-    modifier: Modifier = Modifier
-) {
+private fun StatisticsLoadingContent() {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        verticalArrangement =
+            Arrangement.Center,
+        horizontalAlignment =
+            Alignment.CenterHorizontally
     ) {
-        CircularProgressIndicator()
+        CircularProgressIndicator(
+            color = StatisticsPink
+        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(
+            modifier = Modifier.height(16.dp)
+        )
 
         Text(
             text = "Loading learning statistics...",
-            style = MaterialTheme.typography.bodyLarge
-        )
-    }
-}
-
-@Composable
-private fun StatisticsErrorContent(
-    message: String,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Unable to load statistics",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(onClick = onDismiss) {
-            Text(text = "Dismiss")
-        }
-    }
-}
-
-@Composable
-private fun EmptyStatisticsContent(
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "No Learning History Yet",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = """
-                Complete an evidence evaluation to see your scores, recent attempts and skill accuracy.
-            """.trimIndent(),
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center
+            style =
+                MaterialTheme.typography.bodyLarge,
+            color = StatisticsTextSecondary
         )
     }
 }
@@ -193,34 +218,45 @@ private fun EmptyStatisticsContent(
 @Composable
 private fun StatisticsContent(
     uiState: StatisticsUiState,
+    onPracticeModule: (String) -> Unit,
     onRequestClearHistory: () -> Unit,
-    onClearError: () -> Unit,
-    modifier: Modifier = Modifier
+    onRequestClearSourceReviews: () -> Unit,
+    onRequestClearAllData: () -> Unit,
+    onClearError: () -> Unit
 ) {
     val statistics = uiState.statistics
 
     LazyColumn(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = 18.dp),
+        verticalArrangement =
+            Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
-        item {
-            Text(
-                text = "Learning Statistics",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
+            Spacer(
+                modifier = Modifier.height(8.dp)
             )
 
             Text(
-                text = "Track your evidence evaluation progress and identify skills that need more practice.",
-                modifier = Modifier.padding(top = 6.dp),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = "Learning Statistics",
+                style =
+                    MaterialTheme.typography
+                        .headlineLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = StatisticsTextPrimary
+            )
+
+            Spacer(
+                modifier = Modifier.height(5.dp)
+            )
+
+            Text(
+                text =
+                    "See your progress, strongest skills and next learning priority.",
+                style =
+                    MaterialTheme.typography.bodyMedium,
+                color = StatisticsTextSecondary
             )
         }
 
@@ -234,31 +270,54 @@ private fun StatisticsContent(
         }
 
         item {
-            SummaryCard(
-                completedEvaluations =
-                    statistics.completedEvaluations,
-                averagePercentage =
-                    statistics.averagePercentage,
-                bestPercentage =
-                    statistics.bestPercentage
+            OverviewCard(
+                statistics = statistics
             )
         }
 
         item {
             SectionHeading(
+                title = "Progress by Level",
+                description =
+                    "Each level contains five learning modules."
+            )
+        }
+
+        items(
+            items = statistics.progressByDifficulty,
+            key = { progress ->
+                progress.difficultyLevel.name
+            }
+        ) { progress ->
+            DifficultyProgressCard(
+                progress = progress
+            )
+        }
+
+        statistics.recommendedFocus?.let { focus ->
+            item {
+                RecommendedFocusCard(
+                    focus = focus,
+                    onPracticeModule =
+                        onPracticeModule
+                )
+            }
+        }
+
+        item {
+            SectionHeading(
                 title = "Skill Accuracy",
-                description = """
-                    Accuracy is calculated from every question you have answered in each evaluation dimension.
-                """.trimIndent()
+                description =
+                    "Skills with at least three answers receive a progress rating."
             )
         }
 
         if (statistics.skillAccuracies.isEmpty()) {
             item {
-                Text(
-                    text = "No skill data is available yet.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                EmptySectionCard(
+                    title = "No skill data yet",
+                    message =
+                        "Complete a learning module to start measuring skill accuracy."
                 )
             }
         } else {
@@ -269,111 +328,476 @@ private fun StatisticsContent(
                 }
             ) { skillAccuracy ->
                 SkillAccuracyCard(
-                    skillAccuracy = skillAccuracy
+                    skillAccuracy =
+                        skillAccuracy
                 )
             }
         }
 
         item {
             SectionHeading(
-                title = "Recent Attempts",
-                description = "Your five most recent completed evaluations."
+                title = "Real Source Practice",
+                description =
+                    "Track how deeply you reviewed real academic sources."
             )
         }
 
-        items(
-            items = statistics.recentAttempts,
-            key = { attempt ->
-                attempt.id
+        item {
+            SourcePracticeCard(
+                statistics =
+                    statistics.sourceReviewStatistics
+            )
+        }
+
+        item {
+            SectionHeading(
+                title = "Recent Activity",
+                description =
+                    "Your latest evaluations and saved source reviews."
+            )
+        }
+
+        if (statistics.recentActivities.isEmpty()) {
+            item {
+                EmptySectionCard(
+                    title = "No recent activity",
+                    message =
+                        "Your completed evaluations and source reviews will appear here."
+                )
             }
-        ) { attempt ->
-            RecentAttemptCard(
-                attempt = attempt
-            )
+        } else {
+            items(
+                items = statistics.recentActivities,
+                key = { activity ->
+                    activity.id
+                }
+            ) { activity ->
+                RecentActivityCard(
+                    activity = activity
+                )
+            }
         }
 
-        item {
-            HorizontalDivider()
-        }
-
-        item {
-            OutlinedButton(
-                onClick = onRequestClearHistory,
-                enabled = uiState.canClearHistory,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = if (uiState.isClearingHistory) {
-                        "Clearing History..."
-                    } else {
-                        "Clear Learning History"
-                    }
+        if (uiState.hasData) {
+            item {
+                ManageLearningDataCard(
+                    canClearHistory =
+                        uiState.canClearHistory,
+                    canClearSourceReviews =
+                        uiState.canClearSourceReviews,
+                    canClearAllData =
+                        uiState.canClearAllData,
+                    isClearing =
+                        uiState.isClearingHistory,
+                    onRequestClearHistory =
+                        onRequestClearHistory,
+                    onRequestClearSourceReviews =
+                        onRequestClearSourceReviews,
+                    onRequestClearAllData =
+                        onRequestClearAllData
                 )
             }
         }
 
         item {
-            Text(
-                text = """
-                    Learning history is stored locally on this device and can be deleted at any time.
-                """.trimIndent(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+            Spacer(
+                modifier = Modifier.height(24.dp)
             )
-        }
-
-        item {
-            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
 @Composable
-private fun SummaryCard(
-    completedEvaluations: Int,
-    averagePercentage: Int,
-    bestPercentage: Int
+private fun OverviewCard(
+    statistics: LearningStatistics
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme.primaryContainer
+            containerColor = Color.Transparent
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = StatisticsPink.copy(
+                alpha = 0.24f
+            )
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFFFFF5F9),
+                            Color(0xFFF3DCE8)
+                        )
+                    )
+                )
+        ) {
+            // Add soft decoration without covering statistics
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(
+                        x = 30.dp,
+                        y = (-30).dp
+                    )
+                    .size(110.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Color.White.copy(
+                            alpha = 0.35f
+                        )
+                    )
+            )
+
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement =
+                    Arrangement.spacedBy(14.dp)
+            ) {
+                Text(
+                    text = "Progress Overview",
+                    style =
+                        MaterialTheme.typography
+                            .titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = StatisticsTextPrimary
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(10.dp)
+                ) {
+                    OverviewMetric(
+                        value =
+                            "${statistics.totalModulesCompleted} / ${statistics.totalModules}",
+                        label = "Modules",
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    OverviewMetric(
+                        value =
+                            statistics.completedEvaluations
+                                .toString(),
+                        label = "Attempts",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement =
+                        Arrangement.spacedBy(10.dp)
+                ) {
+                    OverviewMetric(
+                        value =
+                            "${statistics.averagePercentage}%",
+                        label = "Average",
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    OverviewMetric(
+                        value =
+                            statistics.sourceReviewCount
+                                .toString(),
+                        label = "Source Reviews",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Text(
+                    text =
+                        "Best evaluation score: ${statistics.bestPercentage}%",
+                    style =
+                        MaterialTheme.typography
+                            .bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = StatisticsPinkDark
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OverviewMetric(
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(18.dp),
+        color = Color.White.copy(
+            alpha = 0.72f
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = Color.White.copy(
+                alpha = 0.9f
+            )
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(
+                horizontal = 10.dp,
+                vertical = 12.dp
+            ),
+            horizontalAlignment =
+                Alignment.CenterHorizontally,
+            verticalArrangement =
+                Arrangement.spacedBy(3.dp)
+        ) {
+            Text(
+                text = value,
+                style =
+                    MaterialTheme.typography
+                        .titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = StatisticsTextPrimary,
+                textAlign = TextAlign.Center
+            )
+
+            Text(
+                text = label,
+                style =
+                    MaterialTheme.typography
+                        .labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = StatisticsTextSecondary,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun DifficultyProgressCard(
+    progress: DifficultyProgress
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = StatisticsBorder
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement =
+                Arrangement.spacedBy(11.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                Text(
+                    text =
+                        progress.difficultyLevel
+                            .displayName,
+                    style =
+                        MaterialTheme.typography
+                            .titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = StatisticsTextPrimary
+                )
+
+                Text(
+                    text =
+                        "${progress.completedModules} / ${progress.totalModules}",
+                    style =
+                        MaterialTheme.typography
+                            .labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = StatisticsPinkDark
+                )
+            }
+
+            ModuleProgressSegments(
+                completedModules =
+                    progress.completedModules,
+                totalModules =
+                    progress.totalModules
+            )
+        }
+    }
+}
+
+@Composable
+private fun ModuleProgressSegments(
+    completedModules: Int,
+    totalModules: Int
+) {
+    if (totalModules <= 0) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(9.dp)
+                .clip(RoundedCornerShape(100.dp))
+                .background(StatisticsPinkSoft)
+        )
+        return
+    }
+
+    val safeCompleted =
+        completedModules.coerceIn(
+            minimumValue = 0,
+            maximumValue = totalModules
+        )
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement =
+            Arrangement.spacedBy(7.dp)
+    ) {
+        repeat(totalModules) { index ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(9.dp)
+                    .clip(
+                        RoundedCornerShape(100.dp)
+                    )
+                    .background(
+                        if (index < safeCompleted) {
+                            StatisticsPink
+                        } else {
+                            StatisticsPinkSoft
+                        }
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun RecommendedFocusCard(
+    focus: RecommendedFocus,
+    onPracticeModule: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = StatisticsPurpleSoft
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = StatisticsPurple.copy(
+                alpha = 0.30f
+            )
         )
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement =
+                Arrangement.spacedBy(11.dp)
         ) {
             Text(
-                text = "Progress Summary",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                text = "Recommended Next Focus",
+                style =
+                    MaterialTheme.typography
+                        .titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = StatisticsTextPrimary
             )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement =
-                    Arrangement.spacedBy(10.dp)
+                    Arrangement.SpaceBetween,
+                verticalAlignment =
+                    Alignment.CenterVertically
             ) {
-                SummaryMetric(
-                    value = completedEvaluations.toString(),
-                    label = "Completed",
-                    modifier = Modifier.weight(1f)
-                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement =
+                        Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(
+                        text = focus.dimension.displayName,
+                        style =
+                            MaterialTheme.typography
+                                .titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = StatisticsPurple
+                    )
 
-                SummaryMetric(
-                    value = "$averagePercentage%",
-                    label = "Average",
-                    modifier = Modifier.weight(1f)
-                )
+                    Text(
+                        text =
+                            "${focus.percentage}% across ${focus.totalAnswers} answers",
+                        style =
+                            MaterialTheme.typography
+                                .bodyMedium,
+                        color = StatisticsTextSecondary
+                    )
+                }
 
-                SummaryMetric(
-                    value = "$bestPercentage%",
-                    label = "Best",
-                    modifier = Modifier.weight(1f)
+                Surface(
+                    shape = RoundedCornerShape(100.dp),
+                    color = Color.White.copy(
+                        alpha = 0.70f
+                    )
+                ) {
+                    Text(
+                        text = "NEXT",
+                        modifier = Modifier.padding(
+                            horizontal = 10.dp,
+                            vertical = 6.dp
+                        ),
+                        style =
+                            MaterialTheme.typography
+                                .labelSmall,
+                        fontWeight =
+                            FontWeight.ExtraBold,
+                        color = StatisticsPurple
+                    )
+                }
+            }
+
+            Text(
+                text = focus.reason,
+                style =
+                    MaterialTheme.typography.bodyMedium,
+                color = StatisticsTextSecondary
+            )
+
+            Text(
+                text =
+                    "Recommended module: ${focus.moduleTitle}",
+                style =
+                    MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = StatisticsTextPrimary
+            )
+
+            Button(
+                onClick = {
+                    onPracticeModule(focus.moduleId)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = StatisticsPurple
+                )
+            ) {
+                Text(
+                    text = "Practice This Skill",
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -381,26 +805,570 @@ private fun SummaryCard(
 }
 
 @Composable
-private fun SummaryMetric(
-    value: String,
-    label: String,
-    modifier: Modifier = Modifier
+private fun SkillAccuracyCard(
+    skillAccuracy: SkillAccuracy
 ) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
+    val progress =
+        skillAccuracy.percentage
+            .coerceIn(
+                minimumValue = 0,
+                maximumValue = 100
+            ) / 100f
+
+    val statusColors =
+        skillStatusColors(
+            status = skillAccuracy.status
+        )
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = StatisticsBorder
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement =
+                Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                Text(
+                    text =
+                        skillAccuracy.dimension
+                            .displayName,
+                    modifier = Modifier.weight(1f),
+                    style =
+                        MaterialTheme.typography
+                            .titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = StatisticsTextPrimary
+                )
+
+                Text(
+                    text =
+                        "${skillAccuracy.percentage}%",
+                    style =
+                        MaterialTheme.typography
+                            .titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = statusColors.accent
+                )
+            }
+
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(7.dp)
+                    .clip(RoundedCornerShape(100.dp)),
+                color = statusColors.accent,
+                trackColor = statusColors.background
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                Text(
+                    text =
+                        "${skillAccuracy.correctAnswers} / ${skillAccuracy.totalAnswers} correct",
+                    style =
+                        MaterialTheme.typography
+                            .bodySmall,
+                    color = StatisticsTextSecondary
+                )
+
+                Surface(
+                    shape = RoundedCornerShape(100.dp),
+                    color = statusColors.background
+                ) {
+                    Text(
+                        text =
+                            skillAccuracy.status
+                                .displayName,
+                        modifier = Modifier.padding(
+                            horizontal = 9.dp,
+                            vertical = 5.dp
+                        ),
+                        style =
+                            MaterialTheme.typography
+                                .labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = statusColors.accent
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SourcePracticeCard(
+    statistics: SourceReviewStatistics
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = NeutralBlueSoft
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = NeutralBlue.copy(
+                alpha = 0.25f
+            )
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement =
+                Arrangement.spacedBy(14.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Structured Reviews",
+                    style =
+                        MaterialTheme.typography
+                            .titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = StatisticsTextPrimary
+                )
+
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White.copy(
+                        alpha = 0.72f
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier.size(46.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text =
+                                statistics.totalReviews
+                                    .toString(),
+                            style =
+                                MaterialTheme.typography
+                                    .titleLarge,
+                            fontWeight =
+                                FontWeight.ExtraBold,
+                            color = NeutralBlue
+                        )
+                    }
+                }
+            }
+
+            if (statistics.totalReviews == 0) {
+                Text(
+                    text =
+                        "Search and evaluate a real source in Explore to begin tracking practical review habits.",
+                    style =
+                        MaterialTheme.typography
+                            .bodyLarge,
+                    color = StatisticsTextSecondary
+                )
+            } else {
+                Text(
+                    text = "Review Depth",
+                    style =
+                        MaterialTheme.typography
+                            .labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = NeutralBlue
+                )
+
+                SourceCountRow(
+                    label =
+                        SourceReviewDepth
+                            .METADATA_ONLY
+                            .displayName,
+                    count = statistics
+                        .reviewDepthCounts[
+                        SourceReviewDepth
+                            .METADATA_ONLY
+                    ] ?: 0
+                )
+
+                SourceCountRow(
+                    label =
+                        SourceReviewDepth
+                            .ABSTRACT_REVIEWED
+                            .displayName,
+                    count = statistics
+                        .reviewDepthCounts[
+                        SourceReviewDepth
+                            .ABSTRACT_REVIEWED
+                    ] ?: 0
+                )
+
+                SourceCountRow(
+                    label =
+                        SourceReviewDepth
+                            .FULL_TEXT_REVIEWED
+                            .displayName,
+                    count = statistics
+                        .reviewDepthCounts[
+                        SourceReviewDepth
+                            .FULL_TEXT_REVIEWED
+                    ] ?: 0
+                )
+
+                HorizontalDivider(
+                    color = NeutralBlue.copy(
+                        alpha = 0.20f
+                    )
+                )
+
+                Text(
+                    text = "Current Decisions",
+                    style =
+                        MaterialTheme.typography
+                            .labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = NeutralBlue
+                )
+
+                SourceCountRow(
+                    label =
+                        SourceCitationDecision
+                            .READY_TO_CONSIDER
+                            .displayName,
+                    count = statistics
+                        .citationDecisionCounts[
+                        SourceCitationDecision
+                            .READY_TO_CONSIDER
+                    ] ?: 0
+                )
+
+                SourceCountRow(
+                    label =
+                        SourceCitationDecision
+                            .NEEDS_FULL_TEXT_REVIEW
+                            .displayName,
+                    count = statistics
+                        .citationDecisionCounts[
+                        SourceCitationDecision
+                            .NEEDS_FULL_TEXT_REVIEW
+                    ] ?: 0
+                )
+
+                SourceCountRow(
+                    label =
+                        SourceCitationDecision
+                            .NOT_SUITABLE
+                            .displayName,
+                    count = statistics
+                        .citationDecisionCounts[
+                        SourceCitationDecision
+                            .NOT_SUITABLE
+                    ] ?: 0
+                )
+
+                val commonChecks = statistics
+                    .verificationItemCounts
+                    .filterValues { count ->
+                        count > 0
+                    }
+                    .toList()
+                    .sortedByDescending { item ->
+                        item.second
+                    }
+                    .take(3)
+
+                if (commonChecks.isNotEmpty()) {
+                    HorizontalDivider(
+                        color = NeutralBlue.copy(
+                            alpha = 0.20f
+                        )
+                    )
+
+                    Text(
+                        text = "Most Common Checks",
+                        style =
+                            MaterialTheme.typography
+                                .labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = NeutralBlue
+                    )
+
+                    commonChecks.forEach { item ->
+                        VerificationCountRow(
+                            item = item.first,
+                            count = item.second
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SourceCountRow(
+    label: String,
+    count: Int
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement =
+            Arrangement.SpaceBetween,
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
         Text(
-            text = value,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
+            text = label,
+            style =
+                MaterialTheme.typography.bodyMedium,
+            color = StatisticsTextPrimary
         )
 
         Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            textAlign = TextAlign.Center
+            text = count.toString(),
+            style =
+                MaterialTheme.typography
+                    .labelLarge,
+            fontWeight = FontWeight.ExtraBold,
+            color = NeutralBlue
         )
+    }
+}
+
+@Composable
+private fun VerificationCountRow(
+    item: SourceVerificationItem,
+    count: Int
+) {
+    SourceCountRow(
+        label = item.displayName,
+        count = count
+    )
+}
+
+@Composable
+private fun RecentActivityCard(
+    activity: RecentLearningActivity
+) {
+    val activityColors =
+        if (
+            activity.activityType ==
+            LearningActivityType.EVALUATION
+        ) {
+            StatusColors(
+                accent = StatisticsPinkDark,
+                background = StatisticsPinkSoft
+            )
+        } else {
+            StatusColors(
+                accent = NeutralBlue,
+                background = NeutralBlueSoft
+            )
+        }
+
+    val typeLabel =
+        if (
+            activity.activityType ==
+            LearningActivityType.EVALUATION
+        ) {
+            "EVALUATION"
+        } else {
+            "SOURCE REVIEW"
+        }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = StatisticsBorder
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement =
+                Arrangement.spacedBy(7.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.SpaceBetween,
+                verticalAlignment =
+                    Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(100.dp),
+                    color = activityColors.background
+                ) {
+                    Text(
+                        text = typeLabel,
+                        modifier = Modifier.padding(
+                            horizontal = 9.dp,
+                            vertical = 5.dp
+                        ),
+                        style =
+                            MaterialTheme.typography
+                                .labelSmall,
+                        fontWeight =
+                            FontWeight.ExtraBold,
+                        color = activityColors.accent
+                    )
+                }
+
+                Text(
+                    text = formatCompletedTime(
+                        completedAt =
+                            activity.completedAt
+                    ),
+                    style =
+                        MaterialTheme.typography
+                            .bodySmall,
+                    color = StatisticsTextSecondary
+                )
+            }
+
+            Text(
+                text = activity.title,
+                style =
+                    MaterialTheme.typography
+                        .titleMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = StatisticsTextPrimary
+            )
+
+            Text(
+                text = activity.subtitle,
+                style =
+                    MaterialTheme.typography
+                        .bodyMedium,
+                color = StatisticsTextSecondary
+            )
+
+            Text(
+                text = activity.outcome,
+                style =
+                    MaterialTheme.typography
+                        .bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = activityColors.accent
+            )
+        }
+    }
+}
+
+@Composable
+private fun ManageLearningDataCard(
+    canClearHistory: Boolean,
+    canClearSourceReviews: Boolean,
+    canClearAllData: Boolean,
+    isClearing: Boolean,
+    onRequestClearHistory: () -> Unit,
+    onRequestClearSourceReviews: () -> Unit,
+    onRequestClearAllData: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = StatisticsBorder
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement =
+                Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Manage Learning Data",
+                style =
+                    MaterialTheme.typography
+                        .titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = StatisticsTextPrimary
+            )
+
+            Text(
+                text =
+                    "Learning history is stored locally on this device.",
+                style =
+                    MaterialTheme.typography.bodyMedium,
+                color = StatisticsTextSecondary
+            )
+
+            OutlinedButton(
+                onClick = onRequestClearHistory,
+                enabled =
+                    canClearHistory &&
+                            !isClearing,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                Text(
+                    text = "Clear Evaluation History"
+                )
+            }
+
+            OutlinedButton(
+                onClick =
+                    onRequestClearSourceReviews,
+                enabled =
+                    canClearSourceReviews &&
+                            !isClearing,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp)
+            ) {
+                Text(
+                    text = "Clear Source Reviews"
+                )
+            }
+
+            TextButton(
+                onClick = onRequestClearAllData,
+                enabled =
+                    canClearAllData &&
+                            !isClearing,
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                    ButtonDefaults.textButtonColors(
+                        contentColor = PracticeRed
+                    )
+            ) {
+                Text(
+                    text = if (isClearing) {
+                        "Clearing Data..."
+                    } else {
+                        "Clear All Learning Data"
+                    },
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }
 
@@ -410,126 +1378,62 @@ private fun SectionHeading(
     description: String
 ) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement =
+            Arrangement.spacedBy(4.dp)
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
+            style =
+                MaterialTheme.typography
+                    .titleLarge,
+            fontWeight = FontWeight.ExtraBold,
+            color = StatisticsTextPrimary
         )
 
         Text(
             text = description,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style =
+                MaterialTheme.typography.bodyMedium,
+            color = StatisticsTextSecondary
         )
     }
 }
 
 @Composable
-private fun SkillAccuracyCard(
-    skillAccuracy: SkillAccuracy
-) {
-    val percentageProgress =
-        skillAccuracy.percentage.coerceIn(
-            minimumValue = 0,
-            maximumValue = 100
-        ) / 100f
-
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text =
-                        skillAccuracy.dimension.displayName,
-                    modifier = Modifier.weight(1f),
-                    style =
-                        MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Text(
-                    text = "${skillAccuracy.percentage}%",
-                    style =
-                        MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            LinearProgressIndicator(
-                progress = { percentageProgress },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Text(
-                text = """
-                    ${skillAccuracy.correctAnswers} correct out of ${skillAccuracy.totalAnswers} answers
-                """.trimIndent(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun RecentAttemptCard(
-    attempt: RecentAttempt
+private fun EmptySectionCard(
+    title: String,
+    message: String
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = StatisticsBorder
+        )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement =
+                Arrangement.spacedBy(6.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = formatEvidenceCaseName(
-                        attempt.evidenceCaseId
-                    ),
-                    modifier = Modifier.weight(1f),
-                    style =
-                        MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-
-                Text(
-                    text = "${attempt.percentage}%",
-                    style =
-                        MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
             Text(
-                text = """
-                    Score: ${attempt.score} / ${attempt.totalQuestions}
-                """.trimIndent(),
-                style = MaterialTheme.typography.bodyMedium
+                text = title,
+                style =
+                    MaterialTheme.typography
+                        .titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = StatisticsTextPrimary
             )
 
             Text(
-                text = formatCompletedTime(
-                    attempt.completedAt
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = message,
+                style =
+                    MaterialTheme.typography.bodyMedium,
+                color = StatisticsTextSecondary
             )
         }
     }
@@ -542,18 +1446,27 @@ private fun StatisticsErrorCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor =
-                MaterialTheme.colorScheme.errorContainer
+            containerColor = PracticeRedSoft
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = PracticeRed.copy(
+                alpha = 0.35f
+            )
         )
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement =
+                Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = message,
-                style = MaterialTheme.typography.bodyMedium
+                style =
+                    MaterialTheme.typography.bodyMedium,
+                color = StatisticsTextPrimary
             )
 
             TextButton(
@@ -569,45 +1482,82 @@ private fun StatisticsErrorCard(
 }
 
 @Composable
-private fun ClearHistoryDialog(
+private fun ClearDataDialog(
+    target: StatisticsClearTarget?,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    if (target == null) {
+        return
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(text = "Clear Learning History?")
+            Text(
+                text = target.dialogTitle,
+                fontWeight = FontWeight.Bold
+            )
         },
         text = {
             Text(
-                text = """
-                    This will permanently delete all evaluation attempts and skill statistics stored on this device.
-                """.trimIndent()
+                text = target.dialogMessage
             )
         },
         confirmButton = {
-            Button(onClick = onConfirm) {
-                Text(text = "Clear History")
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PracticeRed
+                )
+            ) {
+                Text(
+                    text = target.confirmLabel
+                )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss
+            ) {
                 Text(text = "Cancel")
             }
         }
     )
 }
 
-private fun formatEvidenceCaseName(
-    evidenceCaseId: String
-): String {
-    return evidenceCaseId
-        .split("_")
-        .joinToString(" ") { word ->
-            word.replaceFirstChar { character ->
-                character.uppercase()
-            }
+private fun skillStatusColors(
+    status: SkillProgressStatus
+): StatusColors {
+    return when (status) {
+        SkillProgressStatus.STRONG -> {
+            StatusColors(
+                accent = StrongGreen,
+                background = StrongGreenSoft
+            )
         }
+
+        SkillProgressStatus.DEVELOPING -> {
+            StatusColors(
+                accent = DevelopingGold,
+                background = DevelopingGoldSoft
+            )
+        }
+
+        SkillProgressStatus.NEEDS_PRACTICE -> {
+            StatusColors(
+                accent = PracticeRed,
+                background = PracticeRedSoft
+            )
+        }
+
+        SkillProgressStatus.NOT_ENOUGH_DATA -> {
+            StatusColors(
+                accent = NeutralBlue,
+                background = NeutralBlueSoft
+            )
+        }
+    }
 }
 
 private fun formatCompletedTime(
@@ -622,4 +1572,9 @@ private fun formatCompletedTime(
         Date(completedAt)
     )
 }
+
+private data class StatusColors(
+    val accent: Color,
+    val background: Color
+)
 

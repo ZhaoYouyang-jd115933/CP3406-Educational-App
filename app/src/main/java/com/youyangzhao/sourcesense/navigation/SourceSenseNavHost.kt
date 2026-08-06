@@ -129,12 +129,19 @@ fun SourceSenseNavHost(
             )
         }
 
-    // Read evaluation statistics from Room
+    // Combine module progress, evaluation history and source reviews
     val statisticsRepository =
-        remember(database) {
+        remember(
+            database,
+            learningModuleRepository
+        ) {
             RoomStatisticsRepository(
                 evaluationAttemptDao =
-                    database.evaluationAttemptDao()
+                    database.evaluationAttemptDao(),
+                sourceReviewDao =
+                    database.sourceReviewDao(),
+                learningModuleRepository =
+                    learningModuleRepository
             )
         }
 
@@ -501,7 +508,21 @@ fun SourceSenseNavHost(
             ) {
                 StatisticsRoute(
                     viewModel =
-                        statisticsViewModel
+                        statisticsViewModel,
+                    onPracticeModule = { moduleId ->
+                        // Start the recommended module from Statistics
+                        evaluationViewModel.startModule(
+                            moduleId = moduleId
+                        )
+
+                        navController.navigate(
+                            AppDestination
+                                .Evaluation
+                                .route
+                        ) {
+                            launchSingleTop = true
+                        }
+                    }
                 )
             }
 
@@ -533,7 +554,7 @@ private fun openSourcePage(
         .removePrefix("doi:")
         .trim()
 
-    // Open the DOI landing page instead of a machine-readable XML link
+    // Open the DOI landing page instead of a machine-readable file
     val doiPageUri =
         if (cleanDoi.isNotBlank()) {
             val encodedDoi = Uri.encode(
@@ -548,7 +569,7 @@ private fun openSourcePage(
             null
         }
 
-    // Use the publisher page only when the DOI is unavailable
+    // Use the publisher page only when no DOI is available
     val publisherPageUri = source.url
         ?.takeIf { url ->
             url.isSafeWebUrl()
