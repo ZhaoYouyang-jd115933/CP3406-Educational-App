@@ -22,4 +22,3 @@ interface StatisticsRepository {
         clearSourceReviews()
     }
 }
-
