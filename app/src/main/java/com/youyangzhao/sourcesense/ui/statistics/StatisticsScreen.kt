@@ -22,7 +22,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -46,10 +45,7 @@ import com.youyangzhao.sourcesense.domain.model.RecentLearningActivity
 import com.youyangzhao.sourcesense.domain.model.RecommendedFocus
 import com.youyangzhao.sourcesense.domain.model.SkillAccuracy
 import com.youyangzhao.sourcesense.domain.model.SkillProgressStatus
-import com.youyangzhao.sourcesense.domain.model.SourceCitationDecision
-import com.youyangzhao.sourcesense.domain.model.SourceReviewDepth
 import com.youyangzhao.sourcesense.domain.model.SourceReviewStatistics
-import com.youyangzhao.sourcesense.domain.model.SourceVerificationItem
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -310,12 +306,7 @@ private fun StatisticsContent(
             item {
                 SectionHeading(
                     title = "Real Source Practice",
-                    description =
-                        if (uiState.showSectionDescriptions) {
-                            "Track how deeply you reviewed real academic sources."
-                        } else {
-                            null
-                        }
+                    description = null
                 )
             }
 
@@ -896,236 +887,50 @@ private fun SourcePracticeCard(
             )
         )
     ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement =
-                Arrangement.spacedBy(14.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            horizontalArrangement =
+                Arrangement.SpaceBetween,
+            verticalAlignment =
+                Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement =
-                    Arrangement.SpaceBetween,
-                verticalAlignment =
-                    Alignment.CenterVertically
+            Text(
+                text = "Structured Reviews",
+                style =
+                    MaterialTheme.typography
+                        .titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = StatisticsTextPrimary
+            )
+
+            Surface(
+                shape = CircleShape,
+                color = Color.White.copy(
+                    alpha = 0.72f
+                )
             ) {
-                Text(
-                    text = "Structured Reviews",
-                    style =
-                        MaterialTheme.typography
-                            .titleLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = StatisticsTextPrimary
-                )
-
-                Surface(
-                    shape = CircleShape,
-                    color = Color.White.copy(
-                        alpha = 0.72f
-                    )
+                Box(
+                    modifier = Modifier.size(46.dp),
+                    contentAlignment =
+                        Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier.size(46.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text =
-                                statistics.totalReviews
-                                    .toString(),
-                            style =
-                                MaterialTheme.typography
-                                    .titleLarge,
-                            fontWeight =
-                                FontWeight.ExtraBold,
-                            color = NeutralBlue
-                        )
-                    }
-                }
-            }
-
-            if (statistics.totalReviews == 0) {
-                Text(
-                    text =
-                        "Search and evaluate a real source in Explore to begin tracking practical review habits.",
-                    style =
-                        MaterialTheme.typography
-                            .bodyLarge,
-                    color = StatisticsTextSecondary
-                )
-            } else {
-                Text(
-                    text = "Review Depth",
-                    style =
-                        MaterialTheme.typography
-                            .labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = NeutralBlue
-                )
-
-                SourceCountRow(
-                    label =
-                        SourceReviewDepth
-                            .METADATA_ONLY
-                            .displayName,
-                    count = statistics
-                        .reviewDepthCounts[
-                        SourceReviewDepth
-                            .METADATA_ONLY
-                    ] ?: 0
-                )
-
-                SourceCountRow(
-                    label =
-                        SourceReviewDepth
-                            .ABSTRACT_REVIEWED
-                            .displayName,
-                    count = statistics
-                        .reviewDepthCounts[
-                        SourceReviewDepth
-                            .ABSTRACT_REVIEWED
-                    ] ?: 0
-                )
-
-                SourceCountRow(
-                    label =
-                        SourceReviewDepth
-                            .FULL_TEXT_REVIEWED
-                            .displayName,
-                    count = statistics
-                        .reviewDepthCounts[
-                        SourceReviewDepth
-                            .FULL_TEXT_REVIEWED
-                    ] ?: 0
-                )
-
-                HorizontalDivider(
-                    color = NeutralBlue.copy(
-                        alpha = 0.20f
-                    )
-                )
-
-                Text(
-                    text = "Current Decisions",
-                    style =
-                        MaterialTheme.typography
-                            .labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = NeutralBlue
-                )
-
-                SourceCountRow(
-                    label =
-                        SourceCitationDecision
-                            .READY_TO_CONSIDER
-                            .displayName,
-                    count = statistics
-                        .citationDecisionCounts[
-                        SourceCitationDecision
-                            .READY_TO_CONSIDER
-                    ] ?: 0
-                )
-
-                SourceCountRow(
-                    label =
-                        SourceCitationDecision
-                            .NEEDS_FULL_TEXT_REVIEW
-                            .displayName,
-                    count = statistics
-                        .citationDecisionCounts[
-                        SourceCitationDecision
-                            .NEEDS_FULL_TEXT_REVIEW
-                    ] ?: 0
-                )
-
-                SourceCountRow(
-                    label =
-                        SourceCitationDecision
-                            .NOT_SUITABLE
-                            .displayName,
-                    count = statistics
-                        .citationDecisionCounts[
-                        SourceCitationDecision
-                            .NOT_SUITABLE
-                    ] ?: 0
-                )
-
-                val commonChecks = statistics
-                    .verificationItemCounts
-                    .filterValues { count ->
-                        count > 0
-                    }
-                    .toList()
-                    .sortedByDescending { item ->
-                        item.second
-                    }
-                    .take(3)
-
-                if (commonChecks.isNotEmpty()) {
-                    HorizontalDivider(
-                        color = NeutralBlue.copy(
-                            alpha = 0.20f
-                        )
-                    )
-
                     Text(
-                        text = "Most Common Checks",
+                        text =
+                            statistics.totalReviews
+                                .toString(),
                         style =
                             MaterialTheme.typography
-                                .labelLarge,
-                        fontWeight = FontWeight.Bold,
+                                .titleLarge,
+                        fontWeight =
+                            FontWeight.ExtraBold,
                         color = NeutralBlue
                     )
-
-                    commonChecks.forEach { item ->
-                        VerificationCountRow(
-                            item = item.first,
-                            count = item.second
-                        )
-                    }
                 }
             }
         }
     }
-}
-
-@Composable
-private fun SourceCountRow(
-    label: String,
-    count: Int
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement =
-            Arrangement.SpaceBetween,
-        verticalAlignment =
-            Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            style =
-                MaterialTheme.typography.bodyMedium,
-            color = StatisticsTextPrimary
-        )
-
-        Text(
-            text = count.toString(),
-            style =
-                MaterialTheme.typography
-                    .labelLarge,
-            fontWeight = FontWeight.ExtraBold,
-            color = NeutralBlue
-        )
-    }
-}
-
-@Composable
-private fun VerificationCountRow(
-    item: SourceVerificationItem,
-    count: Int
-) {
-    SourceCountRow(
-        label = item.displayName,
-        count = count
-    )
 }
 
 @Composable
