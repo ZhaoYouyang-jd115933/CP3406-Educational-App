@@ -26,15 +26,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.youyangzhao.sourcesense.data.local.database.SourceSenseDatabase
-import com.youyangzhao.sourcesense.data.local.preferences.userSettingsDataStore
-import com.youyangzhao.sourcesense.data.remote.api.CrossrefApiClient
-import com.youyangzhao.sourcesense.data.repository.CrossrefAcademicSourceRepository
-import com.youyangzhao.sourcesense.data.repository.DataStoreUserSettingsRepository
-import com.youyangzhao.sourcesense.data.repository.LocalLearningModuleRepository
-import com.youyangzhao.sourcesense.data.repository.RoomEvaluationHistoryRepository
-import com.youyangzhao.sourcesense.data.repository.RoomSourceReviewRepository
-import com.youyangzhao.sourcesense.data.repository.RoomStatisticsRepository
+import com.youyangzhao.sourcesense.di.AppContainer
 import com.youyangzhao.sourcesense.domain.model.AcademicSource
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationRoute
 import com.youyangzhao.sourcesense.ui.evaluation.EvaluationViewModel
@@ -58,6 +50,7 @@ import com.youyangzhao.sourcesense.ui.statistics.StatisticsViewModelFactory
 
 @Composable
 fun SourceSenseNavHost(
+    appContainer: AppContainer,
     modifier: Modifier = Modifier,
     reduceAnimations: Boolean = false,
     soundFeedbackEnabled: Boolean = true
@@ -77,9 +70,6 @@ fun SourceSenseNavHost(
     val context =
         LocalContext.current
 
-    val applicationContext =
-        context.applicationContext
-
     val topLevelRoutes = remember {
         AppDestination
             .topLevelDestinations
@@ -89,71 +79,24 @@ fun SourceSenseNavHost(
             .toSet()
     }
 
-    // Create the local learning content repository
-    val learningModuleRepository = remember {
-        LocalLearningModuleRepository()
-    }
+    // Use the shared app dependencies
+    val learningModuleRepository =
+        appContainer.learningModuleRepository
 
-    // Create the repository used for real literature searches
-    val academicSourceRepository = remember {
-        CrossrefAcademicSourceRepository(
-            apiService =
-                CrossrefApiClient.service
-        )
-    }
+    val academicSourceRepository =
+        appContainer.academicSourceRepository
 
-    // Create one Room database instance for all local records
-    val database = remember(
-        applicationContext
-    ) {
-        SourceSenseDatabase.getInstance(
-            context = applicationContext
-        )
-    }
-
-    // Store and observe learning-module attempts
     val evaluationHistoryRepository =
-        remember(database) {
-            RoomEvaluationHistoryRepository(
-                evaluationAttemptDao =
-                    database.evaluationAttemptDao()
-            )
-        }
+        appContainer.evaluationHistoryRepository
 
-    // Store and observe structured real-source reviews
     val sourceReviewRepository =
-        remember(database) {
-            RoomSourceReviewRepository(
-                sourceReviewDao =
-                    database.sourceReviewDao()
-            )
-        }
+        appContainer.sourceReviewRepository
 
-    // Combine module progress, evaluation history and source reviews
     val statisticsRepository =
-        remember(
-            database,
-            learningModuleRepository
-        ) {
-            RoomStatisticsRepository(
-                evaluationAttemptDao =
-                    database.evaluationAttemptDao(),
-                sourceReviewDao =
-                    database.sourceReviewDao(),
-                learningModuleRepository =
-                    learningModuleRepository
-            )
-        }
+        appContainer.statisticsRepository
 
-    // Store user preferences with DataStore
     val userSettingsRepository =
-        remember(applicationContext) {
-            DataStoreUserSettingsRepository(
-                dataStore =
-                    applicationContext
-                        .userSettingsDataStore
-            )
-        }
+        appContainer.userSettingsRepository
 
     val landingFactory = remember(
         learningModuleRepository,
