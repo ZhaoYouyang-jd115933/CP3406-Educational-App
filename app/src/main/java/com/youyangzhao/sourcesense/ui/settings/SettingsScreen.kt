@@ -1,17 +1,24 @@
 package com.youyangzhao.sourcesense.ui.settings
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -23,14 +30,18 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -38,38 +49,52 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youyangzhao.sourcesense.domain.model.DifficultyLevel
 
+// Define the main settings palette
 private val SettingsBackground =
-    Color(0xFFF8F5FA)
+    Color(0xFFFAF7FA)
 
 private val SettingsCardBackground =
     Color(0xFFFFFFFF)
 
 private val SettingsBorder =
-    Color(0xFFE8DDE5)
+    Color(0xFFEADFE6)
+
+private val SettingsDivider =
+    Color(0xFFF0E7EC)
 
 private val SettingsPink =
-    Color(0xFFB86186)
+    Color(0xFFB85F84)
+
+private val SettingsPinkDark =
+    Color(0xFF904662)
 
 private val SettingsPinkSoft =
-    Color(0xFFF6E7EE)
+    Color(0xFFF7E7EF)
+
+private val SettingsPinkLight =
+    Color(0xFFFFF8FB)
 
 private val SettingsTextPrimary =
     Color(0xFF302A32)
 
 private val SettingsTextSecondary =
-    Color(0xFF625A65)
+    Color(0xFF6A606A)
+
+private val SettingsSwitchOff =
+    Color(0xFFE5E1E6)
 
 private val SettingsDanger =
-    Color(0xFFA8505D)
+    Color(0xFFA84E5A)
 
 private val SettingsDangerSoft =
-    Color(0xFFF9E4E6)
+    Color(0xFFF9E5E7)
 
 @Composable
 fun SettingsRoute(
     viewModel: SettingsViewModel,
     modifier: Modifier = Modifier
 ) {
+    // Observe settings and locally stored learning data
     val uiState by
     viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -182,14 +207,16 @@ fun SettingsScreen(
                     onShowRecentActivityChanged,
                 onShowSectionDescriptionsChanged =
                     onShowSectionDescriptionsChanged,
-                onRequestReset = onRequestReset,
+                onRequestReset =
+                    onRequestReset,
                 onRequestClearEvaluationHistory =
                     onRequestClearEvaluationHistory,
                 onRequestClearSourceReviews =
                     onRequestClearSourceReviews,
                 onRequestClearAllLearningData =
                     onRequestClearAllLearningData,
-                onClearError = onClearError
+                onClearError =
+                    onClearError
             )
         }
     }
@@ -197,25 +224,12 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsLoadingContent() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator(
             color = SettingsPink
-        )
-
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
-        Text(
-            text = "Loading settings...",
-            style = MaterialTheme.typography.bodyLarge,
-            color = SettingsTextSecondary
         )
     }
 }
@@ -238,8 +252,11 @@ private fun SettingsContent(
     onRequestClearAllLearningData: () -> Unit,
     onClearError: () -> Unit
 ) {
-    val settings = uiState.userSettings
-    val statistics = uiState.learningStatistics
+    val settings =
+        uiState.userSettings
+
+    val statistics =
+        uiState.learningStatistics
 
     LazyColumn(
         modifier = Modifier
@@ -253,36 +270,23 @@ private fun SettingsContent(
                 modifier = Modifier.height(8.dp)
             )
 
-            Text(
-                text = "Settings",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = SettingsTextPrimary
-            )
-
-            Text(
-                text =
-                    "Adjust learning, accessibility and statistics preferences.",
-                modifier = Modifier.padding(top = 5.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                color = SettingsTextSecondary
-            )
+            SettingsHeader()
         }
 
         if (uiState.errorMessage != null) {
             item {
                 SettingsErrorCard(
-                    message = uiState.errorMessage,
-                    onDismiss = onClearError
+                    message =
+                        uiState.errorMessage,
+                    onDismiss =
+                        onClearError
                 )
             }
         }
 
         item {
             SectionHeading(
-                title = "Learning Difficulty",
-                description =
-                    "Choose the level of guidance and evidence complexity."
+                title = "Learning Difficulty"
             )
         }
 
@@ -290,7 +294,8 @@ private fun SettingsContent(
             DifficultyCard(
                 selectedDifficulty =
                     settings.difficultyLevel,
-                enabled = uiState.canChangeSettings,
+                enabled =
+                    uiState.canChangeSettings,
                 onDifficultySelected =
                     onDifficultySelected
             )
@@ -298,73 +303,74 @@ private fun SettingsContent(
 
         item {
             SectionHeading(
-                title = "Statistics Display",
-                description =
-                    "Choose which optional sections appear in Learning Statistics."
+                title = "Statistics Display"
             )
         }
 
         item {
-            PreferenceCard {
+            SettingsSectionCard {
                 PreferenceSwitchRow(
-                    title = "Learning Recommendation",
-                    description =
-                        "Show Recommended Next Focus and its practice button.",
+                    title =
+                        "Learning Recommendation",
                     checked =
-                        settings.showStatisticsRecommendation,
-                    enabled = uiState.canChangeSettings,
+                        settings
+                            .showStatisticsRecommendation,
+                    enabled =
+                        uiState.canChangeSettings,
                     onCheckedChange =
                         onShowRecommendationChanged
                 )
 
-                HorizontalDivider()
+                SettingsDivider()
 
                 PreferenceSwitchRow(
                     title = "Skill Accuracy",
-                    description =
-                        "Show performance by evaluation skill.",
                     checked =
-                        settings.showStatisticsSkillAccuracy,
-                    enabled = uiState.canChangeSettings,
+                        settings
+                            .showStatisticsSkillAccuracy,
+                    enabled =
+                        uiState.canChangeSettings,
                     onCheckedChange =
                         onShowSkillAccuracyChanged
                 )
 
-                HorizontalDivider()
+                SettingsDivider()
 
                 PreferenceSwitchRow(
-                    title = "Real Source Practice",
-                    description =
-                        "Show statistics from saved real-source reviews.",
+                    title =
+                        "Real Source Practice",
                     checked =
-                        settings.showStatisticsSourcePractice,
-                    enabled = uiState.canChangeSettings,
+                        settings
+                            .showStatisticsSourcePractice,
+                    enabled =
+                        uiState.canChangeSettings,
                     onCheckedChange =
                         onShowSourcePracticeChanged
                 )
 
-                HorizontalDivider()
+                SettingsDivider()
 
                 PreferenceSwitchRow(
                     title = "Recent Activity",
-                    description =
-                        "Show recent evaluations and saved source reviews.",
                     checked =
-                        settings.showStatisticsRecentActivity,
-                    enabled = uiState.canChangeSettings,
+                        settings
+                            .showStatisticsRecentActivity,
+                    enabled =
+                        uiState.canChangeSettings,
                     onCheckedChange =
                         onShowRecentActivityChanged
                 )
 
-                HorizontalDivider()
+                SettingsDivider()
 
                 PreferenceSwitchRow(
-                    title = "Section Descriptions",
-                    description =
-                        "Show short explanations below statistics headings.",
+                    title =
+                        "Section Descriptions",
                     checked =
-                        settings.showStatisticsSectionDescriptions,
-                    enabled = uiState.canChangeSettings,
+                        settings
+                            .showStatisticsSectionDescriptions,
+                    enabled =
+                        uiState.canChangeSettings,
                     onCheckedChange =
                         onShowSectionDescriptionsChanged
                 )
@@ -373,32 +379,30 @@ private fun SettingsContent(
 
         item {
             SectionHeading(
-                title = "Accessibility",
-                description =
-                    "Adjust how information and movement are presented."
+                title = "Accessibility"
             )
         }
 
         item {
-            PreferenceCard {
+            SettingsSectionCard {
                 PreferenceSwitchRow(
                     title = "Larger Text",
-                    description =
-                        "Use larger text throughout the app.",
-                    checked = settings.useLargerText,
-                    enabled = uiState.canChangeSettings,
+                    checked =
+                        settings.useLargerText,
+                    enabled =
+                        uiState.canChangeSettings,
                     onCheckedChange =
                         onLargerTextChanged
                 )
 
-                HorizontalDivider()
+                SettingsDivider()
 
                 PreferenceSwitchRow(
                     title = "Reduce Animations",
-                    description =
-                        "Limit non-essential movement and transitions.",
-                    checked = settings.reduceAnimations,
-                    enabled = uiState.canChangeSettings,
+                    checked =
+                        settings.reduceAnimations,
+                    enabled =
+                        uiState.canChangeSettings,
                     onCheckedChange =
                         onReduceAnimationsChanged
                 )
@@ -407,21 +411,18 @@ private fun SettingsContent(
 
         item {
             SectionHeading(
-                title = "Feedback",
-                description =
-                    "Control optional sound during learning activities."
+                title = "Feedback"
             )
         }
 
         item {
-            PreferenceCard {
+            SettingsSectionCard {
                 PreferenceSwitchRow(
                     title = "Sound Feedback",
-                    description =
-                        "Play optional sounds after learning actions.",
                     checked =
                         settings.soundFeedbackEnabled,
-                    enabled = uiState.canChangeSettings,
+                    enabled =
+                        uiState.canChangeSettings,
                     onCheckedChange =
                         onSoundFeedbackChanged
                 )
@@ -430,9 +431,7 @@ private fun SettingsContent(
 
         item {
             SectionHeading(
-                title = "Data & Privacy",
-                description =
-                    "Learning history is stored locally on this device."
+                title = "Data & Privacy"
             )
         }
 
@@ -443,7 +442,8 @@ private fun SettingsContent(
                 sourceReviewCount =
                     statistics.sourceReviewCount,
                 canClearEvaluationHistory =
-                    uiState.canClearEvaluationHistory,
+                    uiState
+                        .canClearEvaluationHistory,
                 canClearSourceReviews =
                     uiState.canClearSourceReviews,
                 canClearAllLearningData =
@@ -462,22 +462,35 @@ private fun SettingsContent(
         item {
             OutlinedButton(
                 onClick = onRequestReset,
-                enabled = uiState.canResetSettings,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
+                enabled =
+                    uiState.canResetSettings,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape =
+                    RoundedCornerShape(18.dp),
                 border = BorderStroke(
                     width = 1.dp,
                     color = SettingsPink
-                )
+                ),
+                colors =
+                    ButtonDefaults
+                        .outlinedButtonColors(
+                            contentColor =
+                                SettingsPinkDark
+                        )
             ) {
                 Text(
                     text =
-                        if (uiState.isResettingSettings) {
+                        if (
+                            uiState.isResettingSettings
+                        ) {
                             "Restoring Defaults..."
                         } else {
                             "Restore Default Settings"
                         },
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight =
+                        FontWeight.Bold
                 )
             }
         }
@@ -491,25 +504,98 @@ private fun SettingsContent(
 }
 
 @Composable
-private fun SectionHeading(
-    title: String,
-    description: String
-) {
-    Column(
-        verticalArrangement =
-            Arrangement.spacedBy(4.dp)
+private fun SettingsHeader() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = SettingsBorder
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 3.dp
+        )
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.ExtraBold,
-            color = SettingsTextPrimary
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush =
+                        Brush.linearGradient(
+                            colors = listOf(
+                                SettingsPinkLight,
+                                SettingsPinkSoft
+                            )
+                        )
+                )
+        ) {
+            // Add a quiet decorative shape behind the heading
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(
+                        x = 30.dp,
+                        y = (-30).dp
+                    )
+                    .size(100.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Color.White.copy(
+                            alpha = 0.45f
+                        )
+                    )
+            )
+
+            Text(
+                text = "Settings",
+                modifier = Modifier.padding(
+                    horizontal = 20.dp,
+                    vertical = 22.dp
+                ),
+                style =
+                    MaterialTheme.typography
+                        .headlineLarge,
+                fontWeight =
+                    FontWeight.ExtraBold,
+                color =
+                    SettingsTextPrimary
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionHeading(
+    title: String
+) {
+    Row(
+        verticalAlignment =
+            Alignment.CenterVertically,
+        horizontalArrangement =
+            Arrangement.spacedBy(10.dp)
+    ) {
+        // Use a small accent bar to separate each group
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(24.dp)
+                .clip(
+                    RoundedCornerShape(100.dp)
+                )
+                .background(SettingsPink)
         )
 
         Text(
-            text = description,
-            style = MaterialTheme.typography.bodyMedium,
-            color = SettingsTextSecondary
+            text = title,
+            style =
+                MaterialTheme.typography.titleLarge,
+            fontWeight =
+                FontWeight.ExtraBold,
+            color =
+                SettingsTextPrimary
         )
     }
 }
@@ -522,37 +608,37 @@ private fun DifficultyCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = SettingsCardBackground
+            containerColor =
+                SettingsCardBackground
         ),
         border = BorderStroke(
             width = 1.dp,
             color = SettingsBorder
         )
     ) {
-        Column {
-            DifficultyLevel.entries.forEachIndexed {
-                    index,
+        Column(
+            modifier = Modifier.padding(8.dp),
+            verticalArrangement =
+                Arrangement.spacedBy(6.dp)
+        ) {
+            DifficultyLevel.entries.forEach {
                     difficultyLevel ->
 
                 DifficultyOptionRow(
-                    difficultyLevel = difficultyLevel,
+                    difficultyLevel =
+                        difficultyLevel,
                     selected =
-                        difficultyLevel == selectedDifficulty,
+                        difficultyLevel ==
+                                selectedDifficulty,
                     enabled = enabled,
                     onSelected = {
-                        onDifficultySelected(difficultyLevel)
+                        onDifficultySelected(
+                            difficultyLevel
+                        )
                     }
                 )
-
-                if (index < DifficultyLevel.entries.lastIndex) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(
-                            horizontal = 16.dp
-                        )
-                    )
-                }
             }
         }
     }
@@ -565,7 +651,7 @@ private fun DifficultyOptionRow(
     enabled: Boolean,
     onSelected: () -> Unit
 ) {
-    Row(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .selectable(
@@ -573,64 +659,95 @@ private fun DifficultyOptionRow(
                 enabled = enabled,
                 role = Role.RadioButton,
                 onClick = onSelected
-            )
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            ),
+        shape = RoundedCornerShape(18.dp),
+        color =
+            if (selected) {
+                SettingsPinkSoft
+            } else {
+                Color.Transparent
+            },
+        border =
+            if (selected) {
+                BorderStroke(
+                    width = 1.dp,
+                    color =
+                        SettingsPink.copy(
+                            alpha = 0.3f
+                        )
+                )
+            } else {
+                null
+            }
     ) {
-        RadioButton(
-            selected = selected,
-            onClick = null,
-            enabled = enabled
-        )
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 12.dp),
-            verticalArrangement =
-                Arrangement.spacedBy(3.dp)
+        Row(
+            modifier = Modifier.padding(
+                horizontal = 12.dp,
+                vertical = 12.dp
+            ),
+            verticalAlignment =
+                Alignment.CenterVertically
         ) {
-            Text(
-                text = difficultyLevel.displayName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = SettingsTextPrimary
+            RadioButton(
+                selected = selected,
+                onClick = null,
+                enabled = enabled,
+                colors =
+                    RadioButtonDefaults.colors(
+                        selectedColor =
+                            SettingsPink,
+                        unselectedColor =
+                            SettingsTextSecondary
+                    )
             )
 
             Text(
-                text = difficultyLevel.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = SettingsTextSecondary
+                text =
+                    difficultyLevel.displayName,
+                modifier =
+                    Modifier.padding(start = 10.dp),
+                style =
+                    MaterialTheme.typography
+                        .titleMedium,
+                fontWeight =
+                    if (selected) {
+                        FontWeight.Bold
+                    } else {
+                        FontWeight.SemiBold
+                    },
+                color =
+                    SettingsTextPrimary
             )
         }
     }
 }
 
 @Composable
-private fun PreferenceCard(
-    content: @Composable () -> Unit
+private fun SettingsSectionCard(
+    content:
+    @Composable ColumnScope.() -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = SettingsCardBackground
+            containerColor =
+                SettingsCardBackground
         ),
         border = BorderStroke(
             width = 1.dp,
             color = SettingsBorder
         )
     ) {
-        Column {
-            content()
-        }
+        Column(
+            content = content
+        )
     }
 }
 
 @Composable
 private fun PreferenceSwitchRow(
     title: String,
-    description: String,
     checked: Boolean,
     enabled: Boolean,
     onCheckedChange: (Boolean) -> Unit
@@ -642,36 +759,68 @@ private fun PreferenceSwitchRow(
                 value = checked,
                 enabled = enabled,
                 role = Role.Switch,
-                onValueChange = onCheckedChange
+                onValueChange =
+                    onCheckedChange
             )
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(
+                horizontal = 16.dp,
+                vertical = 14.dp
+            ),
+        verticalAlignment =
+            Alignment.CenterVertically,
+        horizontalArrangement =
+            Arrangement.spacedBy(12.dp)
     ) {
-        Column(
+        Text(
+            text = title,
             modifier = Modifier.weight(1f),
-            verticalArrangement =
-                Arrangement.spacedBy(3.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = SettingsTextPrimary
-            )
-
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = SettingsTextSecondary
-            )
-        }
+            style =
+                MaterialTheme.typography
+                    .titleMedium,
+            fontWeight =
+                FontWeight.SemiBold,
+            color =
+                SettingsTextPrimary
+        )
 
         Switch(
             checked = checked,
             onCheckedChange = null,
-            enabled = enabled
+            enabled = enabled,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor =
+                    Color.White,
+                checkedTrackColor =
+                    SettingsPink,
+                checkedBorderColor =
+                    SettingsPink,
+                uncheckedThumbColor =
+                    SettingsTextSecondary,
+                uncheckedTrackColor =
+                    SettingsSwitchOff,
+                uncheckedBorderColor =
+                    SettingsTextSecondary,
+                disabledCheckedTrackColor =
+                    SettingsPink.copy(
+                        alpha = 0.45f
+                    ),
+                disabledUncheckedTrackColor =
+                    SettingsSwitchOff.copy(
+                        alpha = 0.6f
+                    )
+            )
         )
     }
+}
+
+@Composable
+private fun SettingsDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(
+            horizontal = 16.dp
+        ),
+        color = SettingsDivider
+    )
 }
 
 @Composable
@@ -688,9 +837,10 @@ private fun DataManagementCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = SettingsCardBackground
+            containerColor =
+                SettingsCardBackground
         ),
         border = BorderStroke(
             width = 1.dp,
@@ -700,61 +850,118 @@ private fun DataManagementCard(
         Column(
             modifier = Modifier.padding(18.dp),
             verticalArrangement =
-                Arrangement.spacedBy(12.dp)
+                Arrangement.spacedBy(14.dp)
         ) {
             Text(
                 text = "Stored Learning Data",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = SettingsTextPrimary
+                style =
+                    MaterialTheme.typography
+                        .titleMedium,
+                fontWeight =
+                    FontWeight.Bold,
+                color =
+                    SettingsTextPrimary
             )
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier =
+                    Modifier.fillMaxWidth(),
                 horizontalArrangement =
                     Arrangement.spacedBy(10.dp)
             ) {
                 DataCountCard(
-                    value = evaluationCount.toString(),
+                    value =
+                        evaluationCount.toString(),
                     label = "Evaluations",
-                    modifier = Modifier.weight(1f)
+                    modifier =
+                        Modifier.weight(1f)
                 )
 
                 DataCountCard(
-                    value = sourceReviewCount.toString(),
+                    value =
+                        sourceReviewCount.toString(),
                     label = "Source Reviews",
-                    modifier = Modifier.weight(1f)
+                    modifier =
+                        Modifier.weight(1f)
                 )
             }
 
             OutlinedButton(
-                onClick = onRequestClearEvaluationHistory,
+                onClick =
+                    onRequestClearEvaluationHistory,
                 enabled =
-                    canClearEvaluationHistory && !isClearing,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp)
+                    canClearEvaluationHistory &&
+                            !isClearing,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape =
+                    RoundedCornerShape(18.dp),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color =
+                        SettingsTextSecondary
+                ),
+                colors =
+                    ButtonDefaults
+                        .outlinedButtonColors(
+                            contentColor =
+                                SettingsTextPrimary
+                        )
             ) {
-                Text(text = "Clear Evaluation History")
+                Text(
+                    text =
+                        "Clear Evaluation History",
+                    fontWeight =
+                        FontWeight.Medium
+                )
             }
 
             OutlinedButton(
-                onClick = onRequestClearSourceReviews,
+                onClick =
+                    onRequestClearSourceReviews,
                 enabled =
-                    canClearSourceReviews && !isClearing,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp)
+                    canClearSourceReviews &&
+                            !isClearing,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape =
+                    RoundedCornerShape(18.dp),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color =
+                        SettingsTextSecondary
+                ),
+                colors =
+                    ButtonDefaults
+                        .outlinedButtonColors(
+                            contentColor =
+                                SettingsTextPrimary
+                        )
             ) {
-                Text(text = "Clear Source Reviews")
+                Text(
+                    text =
+                        "Clear Source Reviews",
+                    fontWeight =
+                        FontWeight.Medium
+                )
             }
 
             TextButton(
-                onClick = onRequestClearAllLearningData,
+                onClick =
+                    onRequestClearAllLearningData,
                 enabled =
-                    canClearAllLearningData && !isClearing,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = SettingsDanger
-                )
+                    canClearAllLearningData &&
+                            !isClearing,
+                modifier =
+                    Modifier.fillMaxWidth(),
+                colors =
+                    ButtonDefaults
+                        .textButtonColors(
+                            contentColor =
+                                SettingsDanger
+                        )
             ) {
                 Text(
                     text =
@@ -763,7 +970,8 @@ private fun DataManagementCard(
                         } else {
                             "Clear All Learning Data"
                         },
-                    fontWeight = FontWeight.Bold
+                    fontWeight =
+                        FontWeight.Bold
                 )
             }
         }
@@ -776,28 +984,49 @@ private fun DataCountCard(
     label: String,
     modifier: Modifier = Modifier
 ) {
-    Surface(
+    Card(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = SettingsPinkSoft
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(
+            containerColor =
+                SettingsPinkSoft
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = SettingsPink.copy(
+                alpha = 0.12f
+            )
+        )
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            horizontalAlignment =
+                Alignment.CenterHorizontally,
             verticalArrangement =
-                Arrangement.spacedBy(3.dp)
+                Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = SettingsTextPrimary
+                style =
+                    MaterialTheme.typography
+                        .headlineSmall,
+                fontWeight =
+                    FontWeight.ExtraBold,
+                color =
+                    SettingsTextPrimary
             )
 
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = SettingsTextSecondary
+                style =
+                    MaterialTheme.typography
+                        .labelMedium,
+                fontWeight =
+                    FontWeight.Medium,
+                color =
+                    SettingsTextSecondary
             )
         }
     }
@@ -812,27 +1041,35 @@ private fun SettingsErrorCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = SettingsDangerSoft
+            containerColor =
+                SettingsDangerSoft
         ),
         border = BorderStroke(
             width = 1.dp,
-            color = SettingsDanger.copy(alpha = 0.35f)
+            color = SettingsDanger.copy(
+                alpha = 0.35f
+            )
         )
     ) {
-        Column(
+        Row(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement =
-                Arrangement.spacedBy(10.dp)
+            verticalAlignment =
+                Alignment.CenterVertically,
+            horizontalArrangement =
+                Arrangement.spacedBy(12.dp)
         ) {
             Text(
                 text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                color = SettingsTextPrimary
+                modifier = Modifier.weight(1f),
+                style =
+                    MaterialTheme.typography
+                        .bodyMedium,
+                color =
+                    SettingsTextPrimary
             )
 
             TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.align(Alignment.End)
+                onClick = onDismiss
             ) {
                 Text(text = "Dismiss")
             }
@@ -849,28 +1086,36 @@ private fun ResetSettingsDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Restore Default Settings?",
-                fontWeight = FontWeight.Bold
+                text =
+                    "Restore Default Settings?",
+                fontWeight =
+                    FontWeight.Bold
             )
         },
         text = {
             Text(
                 text =
-                    "Difficulty, accessibility, feedback and statistics display preferences will return to their default values."
+                    "All preferences will return to their default values."
             )
         },
         confirmButton = {
             Button(
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = SettingsPink
-                )
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor =
+                            SettingsPink
+                    )
             ) {
-                Text(text = "Restore Defaults")
+                Text(
+                    text = "Restore Defaults"
+                )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss
+            ) {
                 Text(text = "Cancel")
             }
         }
@@ -892,24 +1137,33 @@ private fun ClearLearningDataDialog(
         title = {
             Text(
                 text = target.dialogTitle,
-                fontWeight = FontWeight.Bold
+                fontWeight =
+                    FontWeight.Bold
             )
         },
         text = {
-            Text(text = target.dialogMessage)
+            Text(
+                text = target.dialogMessage
+            )
         },
         confirmButton = {
             Button(
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = SettingsDanger
-                )
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor =
+                            SettingsDanger
+                    )
             ) {
-                Text(text = target.confirmLabel)
+                Text(
+                    text = target.confirmLabel
+                )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss
+            ) {
                 Text(text = "Cancel")
             }
         }
