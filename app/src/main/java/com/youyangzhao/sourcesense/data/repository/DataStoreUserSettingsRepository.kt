@@ -105,7 +105,7 @@ class DataStoreUserSettingsRepository(
                     ] ?: true,
                     showStatisticsSectionDescriptions = preferences[
                         PreferenceKeys.showStatisticsSectionDescriptions
-                    ] ?: true
+                    ] ?: false
                 )
             }
     }

@@ -31,6 +31,6 @@ data class UserSettings(
     val showStatisticsSkillAccuracy: Boolean = true,
     val showStatisticsSourcePractice: Boolean = true,
     val showStatisticsRecentActivity: Boolean = true,
-    val showStatisticsSectionDescriptions: Boolean = true
+    val showStatisticsSectionDescriptions: Boolean = false
 )
 
