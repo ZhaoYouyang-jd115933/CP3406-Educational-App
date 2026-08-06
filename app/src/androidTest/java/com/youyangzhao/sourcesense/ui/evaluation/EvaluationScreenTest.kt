@@ -11,7 +11,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.youyangzhao.sourcesense.domain.model.AnswerOption
@@ -55,9 +54,18 @@ class EvaluationScreenTest {
             .onNodeWithText("Question 1 of 2")
             .assertExists()
 
+        val scrollableColumn =
+            composeTestRule.onNode(
+                hasScrollAction()
+            )
+
+        // Scroll until the button is composed
+        scrollableColumn.performScrollToNode(
+            hasText("Check Answer")
+        )
+
         composeTestRule
             .onNodeWithText("Check Answer")
-            .performScrollTo()
             .assertIsNotEnabled()
 
         composeTestRule
@@ -117,24 +125,35 @@ class EvaluationScreenTest {
             }
         }
 
+        val scrollableColumn =
+            composeTestRule.onNode(
+                hasScrollAction()
+            )
+
+        // Scroll until the answer option is composed
+        scrollableColumn.performScrollToNode(
+            hasText(
+                "Directly relevant",
+                substring = true
+            )
+        )
+
         composeTestRule
             .onNodeWithText(
                 "Directly relevant",
                 substring = true
             )
-            .performScrollTo()
             .performClick()
+
+        // Scroll until the submit button is composed
+        scrollableColumn.performScrollToNode(
+            hasText("Check Answer")
+        )
 
         composeTestRule
             .onNodeWithText("Check Answer")
-            .performScrollTo()
             .assertIsEnabled()
             .performClick()
-
-        val scrollableColumn =
-            composeTestRule.onNode(
-                hasScrollAction()
-            )
 
         // Scroll until the feedback content is composed
         scrollableColumn.performScrollToNode(
