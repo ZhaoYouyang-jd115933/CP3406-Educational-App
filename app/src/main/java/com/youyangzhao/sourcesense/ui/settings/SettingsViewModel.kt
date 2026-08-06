@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.youyangzhao.sourcesense.domain.model.DifficultyLevel
+import com.youyangzhao.sourcesense.domain.repository.StatisticsRepository
 import com.youyangzhao.sourcesense.domain.repository.UserSettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +14,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(
-    private val userSettingsRepository: UserSettingsRepository
+    private val userSettingsRepository:
+    UserSettingsRepository,
+    private val statisticsRepository:
+    StatisticsRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -25,6 +29,7 @@ class SettingsViewModel(
 
     init {
         observeUserSettings()
+        observeLearningStatistics()
     }
 
     private fun observeUserSettings() {
@@ -52,13 +57,33 @@ class SettingsViewModel(
         }
     }
 
+    private fun observeLearningStatistics() {
+        val repository = statisticsRepository ?: return
+
+        viewModelScope.launch {
+            repository
+                .observeLearningStatistics()
+                .catch {
+                    _uiState.update { state ->
+                        state.copy(
+                            errorMessage =
+                                "Learning data could not be loaded."
+                        )
+                    }
+                }
+                .collect { statistics ->
+                    _uiState.update { state ->
+                        state.copy(
+                            learningStatistics = statistics
+                        )
+                    }
+                }
+        }
+    }
+
     fun updateDifficultyLevel(
         difficultyLevel: DifficultyLevel
     ) {
-        if (!_uiState.value.canChangeSettings) {
-            return
-        }
-
         updateSetting {
             userSettingsRepository.updateDifficultyLevel(
                 difficultyLevel = difficultyLevel
@@ -69,10 +94,6 @@ class SettingsViewModel(
     fun updateUseLargerText(
         enabled: Boolean
     ) {
-        if (!_uiState.value.canChangeSettings) {
-            return
-        }
-
         updateSetting {
             userSettingsRepository.updateUseLargerText(
                 enabled = enabled
@@ -83,10 +104,6 @@ class SettingsViewModel(
     fun updateReduceAnimations(
         enabled: Boolean
     ) {
-        if (!_uiState.value.canChangeSettings) {
-            return
-        }
-
         updateSetting {
             userSettingsRepository.updateReduceAnimations(
                 enabled = enabled
@@ -97,10 +114,6 @@ class SettingsViewModel(
     fun updateSoundFeedback(
         enabled: Boolean
     ) {
-        if (!_uiState.value.canChangeSettings) {
-            return
-        }
-
         updateSetting {
             userSettingsRepository.updateSoundFeedback(
                 enabled = enabled
@@ -108,9 +121,68 @@ class SettingsViewModel(
         }
     }
 
+    fun updateShowStatisticsRecommendation(
+        enabled: Boolean
+    ) {
+        updateSetting {
+            userSettingsRepository
+                .updateShowStatisticsRecommendation(
+                    enabled = enabled
+                )
+        }
+    }
+
+    fun updateShowStatisticsSkillAccuracy(
+        enabled: Boolean
+    ) {
+        updateSetting {
+            userSettingsRepository
+                .updateShowStatisticsSkillAccuracy(
+                    enabled = enabled
+                )
+        }
+    }
+
+    fun updateShowStatisticsSourcePractice(
+        enabled: Boolean
+    ) {
+        updateSetting {
+            userSettingsRepository
+                .updateShowStatisticsSourcePractice(
+                    enabled = enabled
+                )
+        }
+    }
+
+    fun updateShowStatisticsRecentActivity(
+        enabled: Boolean
+    ) {
+        updateSetting {
+            userSettingsRepository
+                .updateShowStatisticsRecentActivity(
+                    enabled = enabled
+                )
+        }
+    }
+
+    fun updateShowStatisticsSectionDescriptions(
+        enabled: Boolean
+    ) {
+        updateSetting {
+            userSettingsRepository
+                .updateShowStatisticsSectionDescriptions(
+                    enabled = enabled
+                )
+        }
+    }
+
     private fun updateSetting(
         updateAction: suspend () -> Unit
     ) {
+        if (!_uiState.value.canChangeSettings) {
+            return
+        }
+
         viewModelScope.launch {
             runCatching {
                 updateAction()
@@ -182,6 +254,134 @@ class SettingsViewModel(
         }
     }
 
+    fun requestClearEvaluationHistory() {
+        requestDataClear(
+            target = SettingsDataClearTarget.EVALUATION_HISTORY
+        )
+    }
+
+    fun requestClearSourceReviews() {
+        requestDataClear(
+            target = SettingsDataClearTarget.SOURCE_REVIEWS
+        )
+    }
+
+    fun requestClearAllLearningData() {
+        requestDataClear(
+            target = SettingsDataClearTarget.ALL_LEARNING_DATA
+        )
+    }
+
+    private fun requestDataClear(
+        target: SettingsDataClearTarget
+    ) {
+        if (!canClear(target)) {
+            return
+        }
+
+        _uiState.update { state ->
+            state.copy(
+                dataClearTarget = target
+            )
+        }
+    }
+
+    fun dismissDataClearConfirmation() {
+        _uiState.update { state ->
+            state.copy(
+                dataClearTarget = null
+            )
+        }
+    }
+
+    fun confirmDataClear() {
+        val repository = statisticsRepository ?: return
+        val target = _uiState.value.dataClearTarget ?: return
+
+        if (!canClear(target)) {
+            return
+        }
+
+        _uiState.update { state ->
+            state.copy(
+                dataClearTarget = null,
+                isClearingLearningData = true,
+                errorMessage = null
+            )
+        }
+
+        viewModelScope.launch {
+            runCatching {
+                when (target) {
+                    SettingsDataClearTarget.EVALUATION_HISTORY -> {
+                        repository.clearLearningHistory()
+                    }
+
+                    SettingsDataClearTarget.SOURCE_REVIEWS -> {
+                        repository.clearSourceReviews()
+                    }
+
+                    SettingsDataClearTarget.ALL_LEARNING_DATA -> {
+                        repository.clearAllLearningData()
+                    }
+                }
+            }.onSuccess {
+                // Room emits the new data totals after deletion
+                _uiState.update { state ->
+                    state.copy(
+                        isClearingLearningData = false
+                    )
+                }
+            }.onFailure {
+                _uiState.update { state ->
+                    state.copy(
+                        isClearingLearningData = false,
+                        errorMessage =
+                            dataClearFailureMessage(target)
+                    )
+                }
+            }
+        }
+    }
+
+    private fun canClear(
+        target: SettingsDataClearTarget
+    ): Boolean {
+        val state = _uiState.value
+
+        return when (target) {
+            SettingsDataClearTarget.EVALUATION_HISTORY -> {
+                state.canClearEvaluationHistory
+            }
+
+            SettingsDataClearTarget.SOURCE_REVIEWS -> {
+                state.canClearSourceReviews
+            }
+
+            SettingsDataClearTarget.ALL_LEARNING_DATA -> {
+                state.canClearAllLearningData
+            }
+        }
+    }
+
+    private fun dataClearFailureMessage(
+        target: SettingsDataClearTarget
+    ): String {
+        return when (target) {
+            SettingsDataClearTarget.EVALUATION_HISTORY -> {
+                "Evaluation history could not be cleared."
+            }
+
+            SettingsDataClearTarget.SOURCE_REVIEWS -> {
+                "Source reviews could not be cleared."
+            }
+
+            SettingsDataClearTarget.ALL_LEARNING_DATA -> {
+                "Learning data could not be cleared."
+            }
+        }
+    }
+
     fun clearError() {
         _uiState.update { state ->
             state.copy(
@@ -193,7 +393,9 @@ class SettingsViewModel(
 
 class SettingsViewModelFactory(
     private val userSettingsRepository:
-    UserSettingsRepository
+    UserSettingsRepository,
+    private val statisticsRepository:
+    StatisticsRepository? = null
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -207,7 +409,9 @@ class SettingsViewModelFactory(
         ) {
             return SettingsViewModel(
                 userSettingsRepository =
-                    userSettingsRepository
+                    userSettingsRepository,
+                statisticsRepository =
+                    statisticsRepository
             ) as T
         }
 

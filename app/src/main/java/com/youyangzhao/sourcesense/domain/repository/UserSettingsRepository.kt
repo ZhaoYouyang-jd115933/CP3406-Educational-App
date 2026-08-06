@@ -24,6 +24,35 @@ interface UserSettingsRepository {
         enabled: Boolean
     )
 
+    suspend fun updateShowStatisticsRecommendation(
+        enabled: Boolean
+    ) {
+        // Existing repositories can keep the default display behaviour
+    }
+
+    suspend fun updateShowStatisticsSkillAccuracy(
+        enabled: Boolean
+    ) {
+        // Existing repositories can keep the default display behaviour
+    }
+
+    suspend fun updateShowStatisticsSourcePractice(
+        enabled: Boolean
+    ) {
+        // Existing repositories can keep the default display behaviour
+    }
+
+    suspend fun updateShowStatisticsRecentActivity(
+        enabled: Boolean
+    ) {
+        // Existing repositories can keep the default display behaviour
+    }
+
+    suspend fun updateShowStatisticsSectionDescriptions(
+        enabled: Boolean
+    ) {
+        // Existing repositories can keep the default display behaviour
+    }
+
     suspend fun resetUserSettings()
 }
-

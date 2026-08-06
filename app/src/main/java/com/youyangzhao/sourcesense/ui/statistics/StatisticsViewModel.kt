@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.youyangzhao.sourcesense.domain.repository.StatisticsRepository
+import com.youyangzhao.sourcesense.domain.repository.UserSettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +14,9 @@ import kotlinx.coroutines.launch
 
 class StatisticsViewModel(
     private val statisticsRepository:
-    StatisticsRepository
+    StatisticsRepository,
+    private val userSettingsRepository:
+    UserSettingsRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -25,6 +28,7 @@ class StatisticsViewModel(
 
     init {
         observeStatistics()
+        observeDisplaySettings()
     }
 
     private fun observeStatistics() {
@@ -52,28 +56,44 @@ class StatisticsViewModel(
         }
     }
 
-    // Keep the original action for existing tests and UI calls
+    private fun observeDisplaySettings() {
+        val repository = userSettingsRepository ?: return
+
+        viewModelScope.launch {
+            repository
+                .observeUserSettings()
+                .catch {
+                    // Keep default display settings if DataStore cannot be read
+                }
+                .collect { userSettings ->
+                    _uiState.update { state ->
+                        state.copy(
+                            userSettings = userSettings
+                        )
+                    }
+                }
+        }
+    }
+
+    // Keep the original clear actions for existing tests
     fun requestClearHistory() {
         requestClearTarget(
             target =
-                StatisticsClearTarget
-                    .EVALUATION_HISTORY
+                StatisticsClearTarget.EVALUATION_HISTORY
         )
     }
 
     fun requestClearSourceReviews() {
         requestClearTarget(
             target =
-                StatisticsClearTarget
-                    .SOURCE_REVIEWS
+                StatisticsClearTarget.SOURCE_REVIEWS
         )
     }
 
     fun requestClearAllData() {
         requestClearTarget(
             target =
-                StatisticsClearTarget
-                    .ALL_LEARNING_DATA
+                StatisticsClearTarget.ALL_LEARNING_DATA
         )
     }
 
@@ -101,8 +121,7 @@ class StatisticsViewModel(
 
     fun confirmClearHistory() {
         val currentState = _uiState.value
-        val target =
-            currentState.clearTarget ?: return
+        val target = currentState.clearTarget ?: return
 
         if (!canClear(target)) {
             return
@@ -119,27 +138,20 @@ class StatisticsViewModel(
         viewModelScope.launch {
             runCatching {
                 when (target) {
-                    StatisticsClearTarget
-                        .EVALUATION_HISTORY -> {
-                        // Use the legacy method to preserve existing repository tests
-                        statisticsRepository
-                            .clearLearningHistory()
+                    StatisticsClearTarget.EVALUATION_HISTORY -> {
+                        statisticsRepository.clearLearningHistory()
                     }
 
-                    StatisticsClearTarget
-                        .SOURCE_REVIEWS -> {
-                        statisticsRepository
-                            .clearSourceReviews()
+                    StatisticsClearTarget.SOURCE_REVIEWS -> {
+                        statisticsRepository.clearSourceReviews()
                     }
 
-                    StatisticsClearTarget
-                        .ALL_LEARNING_DATA -> {
-                        statisticsRepository
-                            .clearAllLearningData()
+                    StatisticsClearTarget.ALL_LEARNING_DATA -> {
+                        statisticsRepository.clearAllLearningData()
                     }
                 }
             }.onSuccess {
-                // Room emits the updated empty or partial statistics automatically
+                // Room emits the updated statistics after deletion
                 _uiState.update { state ->
                     state.copy(
                         isClearingHistory = false
@@ -163,18 +175,15 @@ class StatisticsViewModel(
         val currentState = _uiState.value
 
         return when (target) {
-            StatisticsClearTarget
-                .EVALUATION_HISTORY -> {
+            StatisticsClearTarget.EVALUATION_HISTORY -> {
                 currentState.canClearHistory
             }
 
-            StatisticsClearTarget
-                .SOURCE_REVIEWS -> {
+            StatisticsClearTarget.SOURCE_REVIEWS -> {
                 currentState.canClearSourceReviews
             }
 
-            StatisticsClearTarget
-                .ALL_LEARNING_DATA -> {
+            StatisticsClearTarget.ALL_LEARNING_DATA -> {
                 currentState.canClearAllData
             }
         }
@@ -184,19 +193,15 @@ class StatisticsViewModel(
         target: StatisticsClearTarget
     ): String {
         return when (target) {
-            StatisticsClearTarget
-                .EVALUATION_HISTORY -> {
-                // Keep this wording stable for existing ViewModel tests
+            StatisticsClearTarget.EVALUATION_HISTORY -> {
                 "Learning history could not be cleared."
             }
 
-            StatisticsClearTarget
-                .SOURCE_REVIEWS -> {
+            StatisticsClearTarget.SOURCE_REVIEWS -> {
                 "Source reviews could not be cleared."
             }
 
-            StatisticsClearTarget
-                .ALL_LEARNING_DATA -> {
+            StatisticsClearTarget.ALL_LEARNING_DATA -> {
                 "Learning data could not be cleared."
             }
         }
@@ -213,7 +218,9 @@ class StatisticsViewModel(
 
 class StatisticsViewModelFactory(
     private val statisticsRepository:
-    StatisticsRepository
+    StatisticsRepository,
+    private val userSettingsRepository:
+    UserSettingsRepository? = null
 ) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
@@ -227,7 +234,9 @@ class StatisticsViewModelFactory(
         ) {
             return StatisticsViewModel(
                 statisticsRepository =
-                    statisticsRepository
+                    statisticsRepository,
+                userSettingsRepository =
+                    userSettingsRepository
             ) as T
         }
 
@@ -236,4 +245,5 @@ class StatisticsViewModelFactory(
         )
     }
 }
+
 

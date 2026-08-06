@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -26,7 +25,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -122,18 +120,7 @@ fun StatisticsRoute(
     StatisticsScreen(
         uiState = uiState,
         onPracticeModule = onPracticeModule,
-        onRequestClearHistory =
-            viewModel::requestClearHistory,
-        onRequestClearSourceReviews =
-            viewModel::requestClearSourceReviews,
-        onRequestClearAllData =
-            viewModel::requestClearAllData,
-        onDismissClearConfirmation =
-            viewModel::dismissClearConfirmation,
-        onConfirmClearHistory =
-            viewModel::confirmClearHistory,
-        onClearError =
-            viewModel::clearError,
+        onClearError = viewModel::clearError,
         modifier = modifier
     )
 }
@@ -142,47 +129,21 @@ fun StatisticsRoute(
 fun StatisticsScreen(
     uiState: StatisticsUiState,
     onPracticeModule: (String) -> Unit,
-    onRequestClearHistory: () -> Unit,
-    onRequestClearSourceReviews: () -> Unit,
-    onRequestClearAllData: () -> Unit,
-    onDismissClearConfirmation: () -> Unit,
-    onConfirmClearHistory: () -> Unit,
     onClearError: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (uiState.showClearConfirmation) {
-        ClearDataDialog(
-            target = uiState.clearTarget,
-            onDismiss =
-                onDismissClearConfirmation,
-            onConfirm =
-                onConfirmClearHistory
-        )
-    }
-
     Surface(
         modifier = modifier.fillMaxSize(),
         color = StatisticsBackground
     ) {
-        when {
-            uiState.isLoading -> {
-                StatisticsLoadingContent()
-            }
-
-            else -> {
-                StatisticsContent(
-                    uiState = uiState,
-                    onPracticeModule =
-                        onPracticeModule,
-                    onRequestClearHistory =
-                        onRequestClearHistory,
-                    onRequestClearSourceReviews =
-                        onRequestClearSourceReviews,
-                    onRequestClearAllData =
-                        onRequestClearAllData,
-                    onClearError = onClearError
-                )
-            }
+        if (uiState.isLoading) {
+            StatisticsLoadingContent()
+        } else {
+            StatisticsContent(
+                uiState = uiState,
+                onPracticeModule = onPracticeModule,
+                onClearError = onClearError
+            )
         }
     }
 }
@@ -219,9 +180,6 @@ private fun StatisticsLoadingContent() {
 private fun StatisticsContent(
     uiState: StatisticsUiState,
     onPracticeModule: (String) -> Unit,
-    onRequestClearHistory: () -> Unit,
-    onRequestClearSourceReviews: () -> Unit,
-    onRequestClearAllData: () -> Unit,
     onClearError: () -> Unit
 ) {
     val statistics = uiState.statistics
@@ -247,17 +205,19 @@ private fun StatisticsContent(
                 color = StatisticsTextPrimary
             )
 
-            Spacer(
-                modifier = Modifier.height(5.dp)
-            )
+            if (uiState.showSectionDescriptions) {
+                Spacer(
+                    modifier = Modifier.height(5.dp)
+                )
 
-            Text(
-                text =
-                    "See your progress, strongest skills and next learning priority.",
-                style =
-                    MaterialTheme.typography.bodyMedium,
-                color = StatisticsTextSecondary
-            )
+                Text(
+                    text =
+                        "See your progress, strongest skills and next learning priority.",
+                    style =
+                        MaterialTheme.typography.bodyMedium,
+                    color = StatisticsTextSecondary
+                )
+            }
         }
 
         if (uiState.errorMessage != null) {
@@ -279,7 +239,11 @@ private fun StatisticsContent(
             SectionHeading(
                 title = "Progress by Level",
                 description =
-                    "Each level contains five learning modules."
+                    if (uiState.showSectionDescriptions) {
+                        "Each level contains five learning modules."
+                    } else {
+                        null
+                    }
             )
         }
 
@@ -294,108 +258,107 @@ private fun StatisticsContent(
             )
         }
 
-        statistics.recommendedFocus?.let { focus ->
-            item {
-                RecommendedFocusCard(
-                    focus = focus,
-                    onPracticeModule =
-                        onPracticeModule
-                )
-            }
-        }
-
-        item {
-            SectionHeading(
-                title = "Skill Accuracy",
-                description =
-                    "Skills with at least three answers receive a progress rating."
-            )
-        }
-
-        if (statistics.skillAccuracies.isEmpty()) {
-            item {
-                EmptySectionCard(
-                    title = "No skill data yet",
-                    message =
-                        "Complete a learning module to start measuring skill accuracy."
-                )
-            }
-        } else {
-            items(
-                items = statistics.skillAccuracies,
-                key = { skillAccuracy ->
-                    skillAccuracy.dimension.name
+        if (uiState.showLearningRecommendation) {
+            statistics.recommendedFocus?.let { focus ->
+                item {
+                    RecommendedFocusCard(
+                        focus = focus,
+                        onPracticeModule =
+                            onPracticeModule
+                    )
                 }
-            ) { skillAccuracy ->
-                SkillAccuracyCard(
-                    skillAccuracy =
-                        skillAccuracy
-                )
             }
         }
 
-        item {
-            SectionHeading(
-                title = "Real Source Practice",
-                description =
-                    "Track how deeply you reviewed real academic sources."
-            )
-        }
-
-        item {
-            SourcePracticeCard(
-                statistics =
-                    statistics.sourceReviewStatistics
-            )
-        }
-
-        item {
-            SectionHeading(
-                title = "Recent Activity",
-                description =
-                    "Your latest evaluations and saved source reviews."
-            )
-        }
-
-        if (statistics.recentActivities.isEmpty()) {
+        if (uiState.showSkillAccuracy) {
             item {
-                EmptySectionCard(
-                    title = "No recent activity",
-                    message =
-                        "Your completed evaluations and source reviews will appear here."
+                SectionHeading(
+                    title = "Skill Accuracy",
+                    description =
+                        if (uiState.showSectionDescriptions) {
+                            "Skills with at least three answers receive a progress rating."
+                        } else {
+                            null
+                        }
                 )
             }
-        } else {
-            items(
-                items = statistics.recentActivities,
-                key = { activity ->
-                    activity.id
+
+            if (statistics.skillAccuracies.isEmpty()) {
+                item {
+                    EmptySectionCard(
+                        title = "No skill data yet",
+                        message =
+                            "Complete a learning module to start measuring skill accuracy."
+                    )
                 }
-            ) { activity ->
-                RecentActivityCard(
-                    activity = activity
+            } else {
+                items(
+                    items = statistics.skillAccuracies,
+                    key = { skillAccuracy ->
+                        skillAccuracy.dimension.name
+                    }
+                ) { skillAccuracy ->
+                    SkillAccuracyCard(
+                        skillAccuracy =
+                            skillAccuracy
+                    )
+                }
+            }
+        }
+
+        if (uiState.showRealSourcePractice) {
+            item {
+                SectionHeading(
+                    title = "Real Source Practice",
+                    description =
+                        if (uiState.showSectionDescriptions) {
+                            "Track how deeply you reviewed real academic sources."
+                        } else {
+                            null
+                        }
+                )
+            }
+
+            item {
+                SourcePracticeCard(
+                    statistics =
+                        statistics.sourceReviewStatistics
                 )
             }
         }
 
-        if (uiState.hasData) {
+        if (uiState.showRecentActivity) {
             item {
-                ManageLearningDataCard(
-                    canClearHistory =
-                        uiState.canClearHistory,
-                    canClearSourceReviews =
-                        uiState.canClearSourceReviews,
-                    canClearAllData =
-                        uiState.canClearAllData,
-                    isClearing =
-                        uiState.isClearingHistory,
-                    onRequestClearHistory =
-                        onRequestClearHistory,
-                    onRequestClearSourceReviews =
-                        onRequestClearSourceReviews,
-                    onRequestClearAllData =
-                        onRequestClearAllData
+                SectionHeading(
+                    title = "Recent Activity",
+                    description =
+                        if (uiState.showSectionDescriptions) {
+                            "Your latest evaluations and saved source reviews."
+                        } else {
+                            null
+                        }
                 )
+            }
+
+            if (statistics.recentActivities.isEmpty()) {
+                item {
+                    EmptySectionCard(
+                        title = "No recent activity",
+                        message =
+                            "Your completed evaluations and source reviews will appear here."
+                    )
+                }
+            } else {
+                items(
+                    items = statistics.recentActivities,
+                    key = { activity ->
+                        activity.id
+                    }
+                ) { activity ->
+                    RecentActivityCard(
+                        activity = activity
+                    )
+                }
             }
         }
 
@@ -1279,103 +1242,9 @@ private fun RecentActivityCard(
 }
 
 @Composable
-private fun ManageLearningDataCard(
-    canClearHistory: Boolean,
-    canClearSourceReviews: Boolean,
-    canClearAllData: Boolean,
-    isClearing: Boolean,
-    onRequestClearHistory: () -> Unit,
-    onRequestClearSourceReviews: () -> Unit,
-    onRequestClearAllData: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        border = BorderStroke(
-            width = 1.dp,
-            color = StatisticsBorder
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement =
-                Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = "Manage Learning Data",
-                style =
-                    MaterialTheme.typography
-                        .titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                color = StatisticsTextPrimary
-            )
-
-            Text(
-                text =
-                    "Learning history is stored locally on this device.",
-                style =
-                    MaterialTheme.typography.bodyMedium,
-                color = StatisticsTextSecondary
-            )
-
-            OutlinedButton(
-                onClick = onRequestClearHistory,
-                enabled =
-                    canClearHistory &&
-                            !isClearing,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp)
-            ) {
-                Text(
-                    text = "Clear Evaluation History"
-                )
-            }
-
-            OutlinedButton(
-                onClick =
-                    onRequestClearSourceReviews,
-                enabled =
-                    canClearSourceReviews &&
-                            !isClearing,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp)
-            ) {
-                Text(
-                    text = "Clear Source Reviews"
-                )
-            }
-
-            TextButton(
-                onClick = onRequestClearAllData,
-                enabled =
-                    canClearAllData &&
-                            !isClearing,
-                modifier = Modifier.fillMaxWidth(),
-                colors =
-                    ButtonDefaults.textButtonColors(
-                        contentColor = PracticeRed
-                    )
-            ) {
-                Text(
-                    text = if (isClearing) {
-                        "Clearing Data..."
-                    } else {
-                        "Clear All Learning Data"
-                    },
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun SectionHeading(
     title: String,
-    description: String
+    description: String?
 ) {
     Column(
         verticalArrangement =
@@ -1390,12 +1259,15 @@ private fun SectionHeading(
             color = StatisticsTextPrimary
         )
 
-        Text(
-            text = description,
-            style =
-                MaterialTheme.typography.bodyMedium,
-            color = StatisticsTextSecondary
-        )
+        if (description != null) {
+            // Hide helper text when compact statistics display is enabled
+            Text(
+                text = description,
+                style =
+                    MaterialTheme.typography.bodyMedium,
+                color = StatisticsTextSecondary
+            )
+        }
     }
 }
 
@@ -1481,51 +1353,6 @@ private fun StatisticsErrorCard(
     }
 }
 
-@Composable
-private fun ClearDataDialog(
-    target: StatisticsClearTarget?,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    if (target == null) {
-        return
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = target.dialogTitle,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Text(
-                text = target.dialogMessage
-            )
-        },
-        confirmButton = {
-            Button(
-                onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PracticeRed
-                )
-            ) {
-                Text(
-                    text = target.confirmLabel
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss
-            ) {
-                Text(text = "Cancel")
-            }
-        }
-    )
-}
-
 private fun skillStatusColors(
     status: SkillProgressStatus
 ): StatusColors {
@@ -1577,4 +1404,3 @@ private data class StatusColors(
     val accent: Color,
     val background: Color
 )
-

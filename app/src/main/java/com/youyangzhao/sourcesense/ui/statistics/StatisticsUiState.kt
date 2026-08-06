@@ -1,6 +1,7 @@
 package com.youyangzhao.sourcesense.ui.statistics
 
 import com.youyangzhao.sourcesense.domain.model.LearningStatistics
+import com.youyangzhao.sourcesense.domain.model.UserSettings
 
 enum class StatisticsClearTarget(
     val dialogTitle: String,
@@ -31,6 +32,8 @@ data class StatisticsUiState(
     val isLoading: Boolean = true,
     val statistics:
     LearningStatistics = LearningStatistics(),
+    val userSettings:
+    UserSettings = UserSettings(),
     val errorMessage: String? = null,
     val clearTarget:
     StatisticsClearTarget? = null,
@@ -39,7 +42,27 @@ data class StatisticsUiState(
     val hasData: Boolean
         get() = statistics.hasData
 
-    // Keep this property name for existing ViewModel tests
+    val showLearningRecommendation: Boolean
+        get() = userSettings
+            .showStatisticsRecommendation
+
+    val showSkillAccuracy: Boolean
+        get() = userSettings
+            .showStatisticsSkillAccuracy
+
+    val showRealSourcePractice: Boolean
+        get() = userSettings
+            .showStatisticsSourcePractice
+
+    val showRecentActivity: Boolean
+        get() = userSettings
+            .showStatisticsRecentActivity
+
+    val showSectionDescriptions: Boolean
+        get() = userSettings
+            .showStatisticsSectionDescriptions
+
+    // Keep these properties for existing ViewModel tests
     val showClearConfirmation: Boolean
         get() = clearTarget != null
 

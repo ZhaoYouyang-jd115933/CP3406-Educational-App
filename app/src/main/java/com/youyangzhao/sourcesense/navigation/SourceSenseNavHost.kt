@@ -204,20 +204,26 @@ fun SourceSenseNavHost(
     }
 
     val statisticsFactory = remember(
-        statisticsRepository
+        statisticsRepository,
+        userSettingsRepository
     ) {
         StatisticsViewModelFactory(
             statisticsRepository =
-                statisticsRepository
+                statisticsRepository,
+            userSettingsRepository =
+                userSettingsRepository
         )
     }
 
     val settingsFactory = remember(
-        userSettingsRepository
+        userSettingsRepository,
+        statisticsRepository
     ) {
         SettingsViewModelFactory(
             userSettingsRepository =
-                userSettingsRepository
+                userSettingsRepository,
+            statisticsRepository =
+                statisticsRepository
         )
     }
 

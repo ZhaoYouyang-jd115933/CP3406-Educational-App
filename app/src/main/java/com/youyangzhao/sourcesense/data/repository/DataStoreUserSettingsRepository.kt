@@ -34,12 +34,37 @@ class DataStoreUserSettingsRepository(
         val soundFeedbackEnabled = booleanPreferencesKey(
             "sound_feedback_enabled"
         )
+
+        val showStatisticsRecommendation =
+            booleanPreferencesKey(
+                "show_statistics_recommendation"
+            )
+
+        val showStatisticsSkillAccuracy =
+            booleanPreferencesKey(
+                "show_statistics_skill_accuracy"
+            )
+
+        val showStatisticsSourcePractice =
+            booleanPreferencesKey(
+                "show_statistics_source_practice"
+            )
+
+        val showStatisticsRecentActivity =
+            booleanPreferencesKey(
+                "show_statistics_recent_activity"
+            )
+
+        val showStatisticsSectionDescriptions =
+            booleanPreferencesKey(
+                "show_statistics_section_descriptions"
+            )
     }
 
     override fun observeUserSettings(): Flow<UserSettings> {
         return dataStore.data
             .catch { exception ->
-                // Use default settings when preference data cannot be read
+                // Use defaults when preference data cannot be read
                 if (exception is IOException) {
                     emit(emptyPreferences())
                 } else {
@@ -65,6 +90,21 @@ class DataStoreUserSettingsRepository(
                     ] ?: false,
                     soundFeedbackEnabled = preferences[
                         PreferenceKeys.soundFeedbackEnabled
+                    ] ?: true,
+                    showStatisticsRecommendation = preferences[
+                        PreferenceKeys.showStatisticsRecommendation
+                    ] ?: true,
+                    showStatisticsSkillAccuracy = preferences[
+                        PreferenceKeys.showStatisticsSkillAccuracy
+                    ] ?: true,
+                    showStatisticsSourcePractice = preferences[
+                        PreferenceKeys.showStatisticsSourcePractice
+                    ] ?: true,
+                    showStatisticsRecentActivity = preferences[
+                        PreferenceKeys.showStatisticsRecentActivity
+                    ] ?: true,
+                    showStatisticsSectionDescriptions = preferences[
+                        PreferenceKeys.showStatisticsSectionDescriptions
                     ] ?: true
                 )
             }
@@ -104,8 +144,58 @@ class DataStoreUserSettingsRepository(
         }
     }
 
+    override suspend fun updateShowStatisticsRecommendation(
+        enabled: Boolean
+    ) {
+        dataStore.edit { preferences ->
+            preferences[
+                PreferenceKeys.showStatisticsRecommendation
+            ] = enabled
+        }
+    }
+
+    override suspend fun updateShowStatisticsSkillAccuracy(
+        enabled: Boolean
+    ) {
+        dataStore.edit { preferences ->
+            preferences[
+                PreferenceKeys.showStatisticsSkillAccuracy
+            ] = enabled
+        }
+    }
+
+    override suspend fun updateShowStatisticsSourcePractice(
+        enabled: Boolean
+    ) {
+        dataStore.edit { preferences ->
+            preferences[
+                PreferenceKeys.showStatisticsSourcePractice
+            ] = enabled
+        }
+    }
+
+    override suspend fun updateShowStatisticsRecentActivity(
+        enabled: Boolean
+    ) {
+        dataStore.edit { preferences ->
+            preferences[
+                PreferenceKeys.showStatisticsRecentActivity
+            ] = enabled
+        }
+    }
+
+    override suspend fun updateShowStatisticsSectionDescriptions(
+        enabled: Boolean
+    ) {
+        dataStore.edit { preferences ->
+            preferences[
+                PreferenceKeys.showStatisticsSectionDescriptions
+            ] = enabled
+        }
+    }
+
     override suspend fun resetUserSettings() {
-        // Remove stored values so the default settings are restored
+        // Clearing stored values restores every default preference
         dataStore.edit { preferences ->
             preferences.clear()
         }

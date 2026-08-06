@@ -26,6 +26,11 @@ data class UserSettings(
         DifficultyLevel.INTERMEDIATE,
     val useLargerText: Boolean = false,
     val reduceAnimations: Boolean = false,
-    val soundFeedbackEnabled: Boolean = true
+    val soundFeedbackEnabled: Boolean = true,
+    val showStatisticsRecommendation: Boolean = true,
+    val showStatisticsSkillAccuracy: Boolean = true,
+    val showStatisticsSourcePractice: Boolean = true,
+    val showStatisticsRecentActivity: Boolean = true,
+    val showStatisticsSectionDescriptions: Boolean = true
 )
 
